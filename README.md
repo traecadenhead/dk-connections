@@ -1,3 +1,5 @@
+NOTE: This readme is for the Twilio Conversations Demo App. This app is customized off of that.
+
 # Conversations Demo Web Application Overview
 
 SDK version of this demo app: ![](https://img.shields.io/badge/SDK%20version-2.0.0-blue.svg)
