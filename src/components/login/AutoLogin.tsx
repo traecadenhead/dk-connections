@@ -4,6 +4,8 @@ import { useDispatch } from "react-redux";
 import { bindActionCreators } from "redux";
 import { Box, Spinner } from "@twilio-paste/core";
 import { actionCreators } from "../../store";
+import { getCurrentUser } from "../../api/user";
+import { logout } from "../../store/action-creators";
 
 const AutoLogin = () => {
   const [loading, setLoading] = useState(true);
@@ -14,22 +16,44 @@ const AutoLogin = () => {
     const params = new URLSearchParams(window.location.search);
     const queryToken = params.get("token");
 
+    const handleValidToken = async (token: string) => {
+      try {
+        const userData = await getCurrentUser(token);
+        localStorage.setItem("jwt", token);
+        login(userData.twilio_token);
+        setLoading(false);
+      } catch (error) {
+        console.error("Invalid or expired token:", error);
+        localStorage.removeItem("jwt");
+        logout();
+        console.log("caught an error - would redirect");
+        // redirectToLegacyLogin();
+      }
+    };
+
+    const redirectToLegacyLogin = () => {
+      const returnUrl = `${window.location.origin}?token=[jwt]`;
+      const signinUrl = new URL("https://www.deltakappamft.org/SignIn");
+      signinUrl.searchParams.set("returnUrl", returnUrl);
+      window.location.href = signinUrl.toString();
+    };
+
     if (queryToken) {
-      localStorage.setItem("jwt", queryToken);
-      login(queryToken);
+      console.log("query token");
+      // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
-      setLoading(false);
+      console.log("handling valid token");
+      handleValidToken(queryToken);
+      console.log("handled valid token");
     } else {
       const sessionToken = localStorage.getItem("jwt");
-
       if (sessionToken) {
-        login(sessionToken);
-        setLoading(false);
+        console.log("found session token");
+        handleValidToken(sessionToken);
+        console.log("handled session token");
       } else {
-        const returnUrl = `http://localhost:3000?token=[jwt]`;
-        const signinUrl = new URL("https://www.deltakappamft.org/SignIn");
-        signinUrl.searchParams.set("returnUrl", returnUrl);
-        window.location.href = signinUrl.toString();
+        console.log("redirect to login");
+        redirectToLegacyLogin();
       }
     }
   }, [login]);

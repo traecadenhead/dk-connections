@@ -23,6 +23,7 @@ export const login = (token: string) => {
 
 export const logout = () => {
   return (dispatch: Dispatch<Action>): void => {
+    localStorage.removeItem("jwt");
     dispatch({
       type: ActionType.LOGOUT,
     });

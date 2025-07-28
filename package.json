@@ -53,7 +53,8 @@
     "test:wdio": "cd AutomationTests; npm run wdio",
     "lint": "npx eslint src --ext .ts --ext .tsx",
     "lint:fix": "npx eslint src --ext .ts --ext .tsx --fix",
-    "prepare": "npx husky install"
+    "prepare": "npx husky install",
+    "format": "prettier --write ."
   },
   "eslintConfig": {
     "extends": [

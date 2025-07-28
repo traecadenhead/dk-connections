@@ -25,8 +25,7 @@ const runAutomationTests = (config: Config) => {
     new commands.Run({ command: "yarn build:wdio" }),
     // Last, run test harness
     new commands.Run({
-      command:
-        "./AutomationTests/scripts/run-tests.sh",
+      command: "./AutomationTests/scripts/run-tests.sh",
     }),
   ]);
   config.addJob(job);
