@@ -26,8 +26,7 @@ const AutoLogin = () => {
         console.error("Invalid or expired token:", error);
         localStorage.removeItem("jwt");
         logout();
-        console.log("caught an error - would redirect");
-        // redirectToLegacyLogin();
+        redirectToLegacyLogin();
       }
     };
 
