@@ -6,6 +6,7 @@ import React, { useMemo, useState } from "react";
 import styles from "../styles";
 import { Client, ConnectionState, User } from "@twilio/conversations";
 import UserProfileModal from "./modals/UserProfileModal";
+import MemberProfileModal from "./modals/MemberProfileModal";
 import { readUserProfile } from "../api";
 import { AppLogo, LOGO_SUB_TITLE, LOGO_TITLE } from "../branding";
 import { useSelector } from "react-redux";
@@ -112,11 +113,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </Menu>
       </div>
       {showUserProfileModal && (
-        <UserProfileModal
-          isModalOpen={showUserProfileModal}
+        <MemberProfileModal
+          isOpen={showUserProfileModal}
           handleClose={handleUserProfileModalClose}
-          user={userProfile}
-        ></UserProfileModal>
+        ></MemberProfileModal>
       )}
     </div>
   );

@@ -14,8 +14,8 @@ import { TextArea } from "@twilio-paste/textarea";
 
 interface MemberProfileModalProps {
   isOpen: boolean;
-  onClose: () => void;
-  onSave: (profile: {
+  handleClose: () => void;
+  onSave?: (profile: {
     photoUrl: string;
     bio: string;
     interests: string;
@@ -25,7 +25,7 @@ interface MemberProfileModalProps {
 
 const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
   isOpen,
-  onClose,
+  handleClose,
   onSave,
   initialProfile,
 }) => {
@@ -34,14 +34,16 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
   const [interests, setInterests] = useState(initialProfile?.interests || "");
 
   const handleSave = () => {
-    onSave({ photoUrl, bio, interests });
-    onClose();
+    if (onSave) {
+      onSave({ photoUrl, bio, interests });
+    }
+    handleClose();
   };
 
   return (
     <Modal
       isOpen={isOpen}
-      onDismiss={onClose}
+      onDismiss={handleClose}
       size="default"
       ariaLabelledby="profile-modal"
     >
@@ -83,7 +85,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
         </Box>
       </ModalBody>
       <ModalFooter>
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant="secondary" onClick={handleClose}>
           Cancel
         </Button>
         <Button variant="primary" onClick={handleSave}>

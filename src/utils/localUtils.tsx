@@ -50,7 +50,7 @@ export const translations: Translations = {
     back: "Back",
     remove: "Remove",
     signout: "Sign Out",
-    userProfileTxt: "User Profile",
+    userProfileTxt: "Member Profile",
     identityTxt: "Identity",
     friendlyNameTxt: "Name (friendly_name)",
     selectLocal: "Select a Local",
