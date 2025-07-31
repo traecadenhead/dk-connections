@@ -24,6 +24,7 @@ export const login = (token: string) => {
 export const logout = () => {
   return (dispatch: Dispatch<Action>): void => {
     localStorage.removeItem("jwt");
+    localStorage.removeItem("member_id");
     dispatch({
       type: ActionType.LOGOUT,
     });

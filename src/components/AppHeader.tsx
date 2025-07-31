@@ -1,44 +1,44 @@
-import { Avatar } from "./Avatar";
-import { Text } from "@twilio-paste/core";
-import { Menu, MenuButton, useMenuState, MenuItem } from "@twilio-paste/menu";
-import { ChevronDownIcon } from "@twilio-paste/icons/esm/ChevronDownIcon";
 import React, { useMemo, useState } from "react";
-import styles from "../styles";
-import { Client, ConnectionState, User } from "@twilio/conversations";
-import UserProfileModal from "./modals/UserProfileModal";
-import MemberProfileModal from "./modals/MemberProfileModal";
-import { readUserProfile } from "../api";
-import { AppLogo, LOGO_SUB_TITLE, LOGO_TITLE } from "../branding";
 import { useSelector } from "react-redux";
 import { AppState } from "../store";
-import { getTranslation } from "./../utils/localUtils";
+
+import { Text, useToaster } from "@twilio-paste/core";
+import { Menu, MenuButton, useMenuState, MenuItem } from "@twilio-paste/menu";
+import { ChevronDownIcon } from "@twilio-paste/icons/esm/ChevronDownIcon";
+
+import { Avatar } from "./Avatar";
+import MemberProfileModal from "./modals/MemberProfileModal";
+import { getMemberProfile } from "../api/member";
+import { MemberProfileResponse } from "../types";
+import { AppLogo, LOGO_SUB_TITLE, LOGO_TITLE } from "../branding";
+import { ConnectionState } from "@twilio/conversations";
+import { getTranslation } from "../utils/localUtils";
+import styles from "../styles";
 
 type AppHeaderProps = {
   user: string;
   onSignOut: () => void;
   connectionState: ConnectionState;
-  client?: Client;
 };
+
 const AppHeader: React.FC<AppHeaderProps> = ({
   user,
   onSignOut,
   connectionState,
-  client,
 }) => {
   const menu = useMenuState();
-
-  const [showUserProfileModal, setUserProfileModal] = useState(false);
-
-  const [userProfile, setUserProfile] = useState<User | undefined>(undefined);
-
-  const handleUserProfileModalClose = () => setUserProfileModal(false);
-
+  const toaster = useToaster();
   const local = useSelector((state: AppState) => state.local);
+
+  const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
+  const [memberProfile, setMemberProfile] =
+    useState<MemberProfileResponse | null>(null);
+
   const online = getTranslation(local, "online");
   const connecting = getTranslation(local, "connecting");
   const offline = getTranslation(local, "offline");
   const signout = getTranslation(local, "signout");
-  const userProfileTxt = getTranslation(local, "userProfileTxt");
+  const memberProfileTxt = getTranslation(local, "userProfileTxt");
 
   const label: "online" | "connecting" | "offline" = useMemo(() => {
     switch (connectionState) {
@@ -51,10 +51,29 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
   }, [connectionState]);
 
-  const handleUserProfileModalOpen = async () => {
-    const userProfileTemp = await readUserProfile(user, client);
-    setUserProfile(userProfileTemp);
-    setUserProfileModal(true);
+  const handleMemberProfileModalClose = () => {
+    setShowMemberProfileModal(false);
+    setMemberProfile(null);
+  };
+
+  const handleMemberProfileModalOpen = async () => {
+    try {
+      const memberId = localStorage.getItem("member_id");
+      if (!memberId) {
+        throw new Error("No member ID found in localStorage");
+      }
+      const profile = await getMemberProfile(memberId);
+
+      setMemberProfile(profile);
+      setShowMemberProfileModal(true);
+    } catch (error) {
+      console.error("Failed to load member profile:", error);
+      toaster.push({
+        message: "Unable to load member profile.",
+        variant: "error",
+        dismissAfter: 5000,
+      });
+    }
   };
 
   return (
@@ -70,11 +89,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
       </div>
       <div style={styles.userTile}>
         <Avatar name={user} />
-        <div
-          style={{
-            padding: "0 10px",
-          }}
-        >
+        <div style={{ padding: "0 10px" }}>
           <Text as="span" style={styles.userName}>
             {user}
           </Text>
@@ -107,16 +122,23 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           <MenuItem {...menu} onClick={onSignOut}>
             {signout}
           </MenuItem>
-          <MenuItem {...menu} onClick={handleUserProfileModalOpen}>
-            {userProfileTxt}
+          <MenuItem {...menu} onClick={handleMemberProfileModalOpen}>
+            {memberProfileTxt}
           </MenuItem>
         </Menu>
       </div>
-      {showUserProfileModal && (
+
+      {showMemberProfileModal && memberProfile && (
         <MemberProfileModal
-          isOpen={showUserProfileModal}
-          handleClose={handleUserProfileModalClose}
-        ></MemberProfileModal>
+          isOpen={showMemberProfileModal}
+          handleClose={handleMemberProfileModalClose}
+          initialProfile={{
+            photoUrl: memberProfile.photo_url ?? "",
+            bio: memberProfile.bio ?? "",
+            interests: memberProfile.interests ?? "",
+          }}
+          memberProfile={memberProfile}
+        />
       )}
     </div>
   );

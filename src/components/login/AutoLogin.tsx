@@ -4,7 +4,7 @@ import { useDispatch } from "react-redux";
 import { bindActionCreators } from "redux";
 import { Box, Spinner } from "@twilio-paste/core";
 import { actionCreators } from "../../store";
-import { getCurrentUser } from "../../api/user";
+import { getCurrentMember } from "../../api/member";
 import { logout } from "../../store/action-creators";
 
 const AutoLogin = () => {
@@ -18,13 +18,15 @@ const AutoLogin = () => {
 
     const handleValidToken = async (token: string) => {
       try {
-        const userData = await getCurrentUser(token);
+        const userData = await getCurrentMember(token);
         localStorage.setItem("jwt", token);
+        localStorage.setItem("member_id", userData.member_id);
         login(userData.twilio_token);
         setLoading(false);
       } catch (error) {
         console.error("Invalid or expired token:", error);
         localStorage.removeItem("jwt");
+        localStorage.removeItem("member_id");
         logout();
         redirectToLegacyLogin();
       }

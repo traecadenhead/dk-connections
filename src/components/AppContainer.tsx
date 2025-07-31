@@ -299,7 +299,6 @@ const AppContainer: React.FC = () => {
       <Box>
         <AppHeader
           user={username ?? ""}
-          client={client}
           onSignOut={async () => {
             logout();
 
