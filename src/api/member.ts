@@ -27,3 +27,26 @@ export const getMemberProfile = async (
   );
   return response.data;
 };
+
+export async function updateMemberProfile(data: {
+  photo_url: string;
+  bio: string;
+  interests: string;
+}): Promise<void> {
+  const response = await fetch(
+    `${process.env.REACT_APP_API_URL}/member/profile`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+      },
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to update profile");
+  }
+}

@@ -11,6 +11,8 @@ import { Label } from "@twilio-paste/label";
 import { Box, Text } from "@twilio-paste/core";
 import { TextArea } from "@twilio-paste/textarea";
 import { MemberProfileResponse } from "../../types";
+import { uploadMemberPhoto } from "../../api/photo";
+import { updateMemberProfile } from "../../api/member";
 
 interface MemberProfileModalProps {
   isOpen: boolean;
@@ -37,11 +39,17 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
 
   console.log(memberProfile);
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave({ photoUrl, bio, interests });
+  const handleSave = async () => {
+    try {
+      await updateMemberProfile({ photo_url: photoUrl, bio, interests });
+      if (onSave) {
+        onSave({ photoUrl, bio, interests });
+      }
+      handleClose();
+    } catch (err) {
+      console.error("Profile save failed:", err);
+      alert("Failed to save profile.");
     }
-    handleClose();
   };
 
   return (
@@ -84,19 +92,12 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
               const file = e.target.files?.[0];
               if (!file) return;
 
-              const formData = new FormData();
-              formData.append("file", file);
-
               try {
-                const response = await fetch("/api/upload", {
-                  method: "POST",
-                  body: formData,
-                });
-                if (!response.ok) throw new Error("Upload failed");
-                const data = await response.json();
-                setPhotoUrl(data.url); // Assuming backend returns { url: "..." }
+                const url = await uploadMemberPhoto(file);
+                setPhotoUrl(url);
               } catch (err) {
                 console.error("Upload failed:", err);
+                alert("Failed to upload photo.");
               }
             }}
           />
