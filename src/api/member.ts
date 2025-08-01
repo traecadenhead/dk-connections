@@ -14,6 +14,29 @@ export async function getCurrentMember(jwt: string) {
   return response.data;
 }
 
+export const getMemberProfileBatch = async (
+  ids: string[]
+): Promise<MemberProfileResponse[]> => {
+  const response = await fetch(
+    `${process.env.REACT_APP_API_URL}/member/profile/batch`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+      },
+      body: JSON.stringify({ member_ids: ids }),
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to update profile");
+  }
+
+  return response.json();
+};
+
 export const getMemberProfile = async (
   memberId: string
 ): Promise<MemberProfileResponse> => {

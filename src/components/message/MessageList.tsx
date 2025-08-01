@@ -7,6 +7,7 @@ import { ChatLog } from "@twilio-paste/core";
 import { CustomizationProvider } from "@twilio-paste/core/customization";
 
 import { getBlobFile } from "../../api";
+import { getMemberProfileBatch } from "../../api/member";
 import { actionCreators, AppState } from "../../store";
 import ImagePreviewModal from "../modals/ImagePreviewModal";
 import { ReduxConversation } from "../../store/reducers/convoReducer";
@@ -20,10 +21,11 @@ import {
 } from "../../conversations-objects";
 import { getSdkConversationObject } from "../../conversations-objects";
 import { ReduxParticipant } from "../../store/reducers/participantsReducer";
-import { getFirstMessagePerDate } from "./../../utils/timestampUtils";
+import { getFirstMessagePerDate } from "../../utils/timestampUtils";
 import { useDropzone } from "react-dropzone";
 import { MAX_FILE_SIZE } from "../../constants";
 import MessageItem from "./MessageItem";
+import { MemberProfileResponse } from "../../types";
 
 interface MessageListProps {
   messages: ReduxMessage[];
@@ -46,9 +48,7 @@ const MessageList: React.FC<MessageListProps> = (props: MessageListProps) => {
     return <div className="empty" />;
   }
 
-  // const theme = useTheme();
   const myRef = useRef<HTMLInputElement>(null);
-
   const dispatch = useDispatch();
   const { addAttachment, addNotifications, updateUser } = bindActionCreators(
     actionCreators,
@@ -59,13 +59,15 @@ const MessageList: React.FC<MessageListProps> = (props: MessageListProps) => {
   );
   const users = useSelector((state: AppState) => state.users);
 
+  const [participantProfiles, setParticipantProfiles] = useState<
+    Record<string, MemberProfileResponse>
+  >({});
   const [imagePreview, setImagePreview] = useState<{
     message: ReduxMessage;
     file: Blob;
     sid: string;
   } | null>(null);
   const [horizonMessageCount, setHorizonMessageCount] = useState<number>(0);
-  // const [showHorizonIndex, setShowHorizonIndex] = useState<number>(0);
   const [scrolledToHorizon, setScrollToHorizon] = useState(false);
   const [firstMessagePerDay, setFirstMessagePerDay] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
@@ -97,16 +99,15 @@ const MessageList: React.FC<MessageListProps> = (props: MessageListProps) => {
     if (lastReadIndex === -1 || horizonMessageCount) {
       return;
     }
-    // const showIndex = 0;
     getSdkConversationObject(conversation)
       .getUnreadMessagesCount()
       .then((count) => {
         setHorizonMessageCount(count ?? 0);
-        // setShowHorizonIndex(showIndex);
       });
   }, [messages, lastReadIndex]);
 
-  // Updates the user list based on message authors to be able to get friendly names
+  const participantsBySid = new Map(props.participants.map((p) => [p.sid, p]));
+
   useEffect(() => {
     messages.forEach((message) => {
       const participant = message.participantSid
@@ -123,6 +124,23 @@ const MessageList: React.FC<MessageListProps> = (props: MessageListProps) => {
       setFirstMessagePerDay(getFirstMessagePerDate(messages));
     });
   }, [messages]);
+
+  useEffect(() => {
+    const identities = props.participants
+      .map((p) => p.identity)
+      .filter((id): id is string => typeof id === "string"); // type guard
+
+    const uniqueIdentities = Array.from(new Set(identities));
+    if (uniqueIdentities.length === 0) return;
+
+    getMemberProfileBatch(uniqueIdentities).then((profiles) => {
+      const profileMap = profiles.reduce((acc, profile) => {
+        acc[profile.member_id] = profile;
+        return acc;
+      }, {} as Record<string, MemberProfileResponse>);
+      setParticipantProfiles(profileMap);
+    });
+  }, [props.participants]);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -153,17 +171,18 @@ const MessageList: React.FC<MessageListProps> = (props: MessageListProps) => {
     saveAs(file, filename ?? "");
   };
 
-  const participantsBySid = new Map(props.participants.map((p) => [p.sid, p]));
-
   const getAuthorFriendlyName = (message: ReduxMessage) => {
-    const author = message.author ?? "";
-    if (message.participantSid == null) return author;
+    const identity = participantsBySid.get(
+      message.participantSid ?? ""
+    )?.identity;
+    if (!identity) return message.author ?? "";
 
-    const participant = participantsBySid.get(message.participantSid);
-    if (participant == null || participant.identity == null) return author;
+    const profile = participantProfiles[identity];
+    if (profile?.first_name || profile?.last_name) {
+      return `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim();
+    }
 
-    const user = users[participant.identity];
-    return user?.friendlyName || author;
+    return message.author ?? identity;
   };
 
   return (

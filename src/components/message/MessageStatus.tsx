@@ -33,11 +33,23 @@ const MessageStatus: React.FC<MessageStatusProps> = (props) => {
   const [status, setStatus] = useState<MessageStatuses>({});
 
   useEffect(() => {
-    getMessageStatus(props.message, props.channelParticipants).then(
-      (receipt) => {
+    let isMounted = true;
+
+    const fetchStatus = async () => {
+      const receipt = await getMessageStatus(
+        props.message,
+        props.channelParticipants
+      );
+      if (isMounted) {
         setStatus(receipt);
       }
-    );
+    };
+
+    fetchStatus();
+
+    return () => {
+      isMounted = false;
+    };
   }, [props.channelParticipants, props.message]);
 
   return (
@@ -48,13 +60,9 @@ const MessageStatus: React.FC<MessageStatusProps> = (props) => {
             style={{ ...statusStyle, ...statusIconStyle }}
             color="green"
           />
-          {/*{props.channelParticipants.length > 2 && (*/}
-          {/*  <span style={statusStyle}>*/}
-          {/*    {status[MessageStatusType.Delivered]}*/}
-          {/*  </span>*/}
-          {/*)}*/}
         </>
       ) : null}
+
       {status[MessageStatusType.Sending] ? (
         <>
           <SendingIcon style={{ ...statusStyle, ...statusIconStyle }} />
@@ -67,9 +75,6 @@ const MessageStatus: React.FC<MessageStatusProps> = (props) => {
             style={{ ...statusStyle, ...statusIconStyle }}
             color="red"
           />
-          {/*{props.channelParticipants.length > 2 && (*/}
-          {/*  <span style={statusStyle}>{status[MessageStatusType.Failed]}</span>*/}
-          {/*)}*/}
         </>
       ) : null}
 
@@ -79,9 +84,6 @@ const MessageStatus: React.FC<MessageStatusProps> = (props) => {
             style={{ ...statusStyle, ...statusIconStyle }}
             color="green"
           />
-          {/*{props.channelParticipants.length > 2 && (*/}
-          {/*  <span style={statusStyle}>{status[MessageStatusType.Read]}</span>*/}
-          {/*)}*/}
         </>
       ) : null}
     </>

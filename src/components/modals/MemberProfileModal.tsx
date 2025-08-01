@@ -39,6 +39,8 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
   const [interests, setInterests] = useState(initialProfile?.interests || "");
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleDismiss = () => {
     setStatus("idle");
@@ -55,7 +57,6 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
       setStatus("success");
       setMessage("Profile updated successfully!");
 
-      // Delay closing so user sees the success message
       setTimeout(() => {
         setStatus("idle");
         setMessage(null);
@@ -108,15 +109,43 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
               const file = e.target.files?.[0];
               if (!file) return;
 
+              setUploadingPhoto(true);
+              setUploadError(null);
+
               try {
                 const url = await uploadMemberPhoto(file);
                 setPhotoUrl(url);
               } catch (err) {
                 console.error("Upload failed:", err);
-                alert("Failed to upload photo.");
+                setUploadError("Failed to upload photo.");
+              } finally {
+                setUploadingPhoto(false);
               }
             }}
           />
+
+          {uploadingPhoto && (
+            <Text
+              as="div"
+              fontSize="fontSize20"
+              color="colorTextWeak"
+              marginTop="space40"
+            >
+              Uploading photo...
+            </Text>
+          )}
+
+          {uploadError && (
+            <Text
+              as="div"
+              fontSize="fontSize20"
+              color="colorTextError"
+              marginTop="space40"
+            >
+              {uploadError}
+            </Text>
+          )}
+
           {photoUrl && (
             <Box marginTop="space40">
               <Text as="div" fontSize="fontSize20" color="colorTextWeak">
@@ -173,6 +202,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
           </Text>
         </Box>
       </ModalBody>
+
       {status !== "idle" && message && (
         <Box marginBottom="space60">
           <Callout variant={status === "success" ? "success" : "error"}>
@@ -183,11 +213,16 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
           </Callout>
         </Box>
       )}
+
       <ModalFooter>
         <Button variant="secondary" onClick={handleDismiss}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={handleSave}>
+        <Button
+          variant="primary"
+          onClick={handleSave}
+          disabled={uploadingPhoto}
+        >
           Save
         </Button>
       </ModalFooter>

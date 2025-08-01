@@ -13,12 +13,16 @@ const AutoLogin = () => {
   const { login } = bindActionCreators(actionCreators, dispatch);
 
   useEffect(() => {
+    let isMounted = true;
+
     const params = new URLSearchParams(window.location.search);
     const queryToken = params.get("token");
 
     const handleValidToken = async (token: string) => {
       try {
         const userData = await getCurrentMember(token);
+        if (!isMounted) return;
+
         localStorage.setItem("jwt", token);
         localStorage.setItem("member_id", userData.member_id);
         login(userData.twilio_token);
@@ -28,7 +32,10 @@ const AutoLogin = () => {
         localStorage.removeItem("jwt");
         localStorage.removeItem("member_id");
         logout();
-        redirectToLegacyLogin();
+
+        if (isMounted) {
+          redirectToLegacyLogin();
+        }
       }
     };
 
@@ -40,23 +47,22 @@ const AutoLogin = () => {
     };
 
     if (queryToken) {
-      console.log("query token");
-      // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
-      console.log("handling valid token");
       handleValidToken(queryToken);
-      console.log("handled valid token");
     } else {
       const sessionToken = localStorage.getItem("jwt");
       if (sessionToken) {
-        console.log("found session token");
         handleValidToken(sessionToken);
-        console.log("handled session token");
       } else {
-        console.log("redirect to login");
-        redirectToLegacyLogin();
+        if (isMounted) {
+          redirectToLegacyLogin();
+        }
       }
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [login]);
 
   if (loading) {
