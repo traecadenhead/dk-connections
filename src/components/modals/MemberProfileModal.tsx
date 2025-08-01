@@ -7,6 +7,7 @@ import {
   ModalFooter,
 } from "@twilio-paste/modal";
 import { Button } from "@twilio-paste/button";
+import { Callout, CalloutHeading, CalloutText } from "@twilio-paste/callout";
 import { Label } from "@twilio-paste/label";
 import { Box, Text } from "@twilio-paste/core";
 import { TextArea } from "@twilio-paste/textarea";
@@ -36,8 +37,14 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
   const [photoUrl, setPhotoUrl] = useState(initialProfile?.photoUrl || "");
   const [bio, setBio] = useState(initialProfile?.bio || "");
   const [interests, setInterests] = useState(initialProfile?.interests || "");
+  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [message, setMessage] = useState<string | null>(null);
 
-  console.log(memberProfile);
+  const handleDismiss = () => {
+    setStatus("idle");
+    setMessage(null);
+    handleClose();
+  };
 
   const handleSave = async () => {
     try {
@@ -45,17 +52,26 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
       if (onSave) {
         onSave({ photoUrl, bio, interests });
       }
-      handleClose();
+      setStatus("success");
+      setMessage("Profile updated successfully!");
+
+      // Delay closing so user sees the success message
+      setTimeout(() => {
+        setStatus("idle");
+        setMessage(null);
+        handleClose();
+      }, 3000);
     } catch (err) {
       console.error("Profile save failed:", err);
-      alert("Failed to save profile.");
+      setStatus("error");
+      setMessage("Failed to save profile. Please try again.");
     }
   };
 
   return (
     <Modal
       isOpen={isOpen}
-      onDismiss={handleClose}
+      onDismiss={handleDismiss}
       size="default"
       ariaLabelledby="profile-modal"
     >
@@ -157,8 +173,18 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
           </Text>
         </Box>
       </ModalBody>
+      {status !== "idle" && message && (
+        <Box marginBottom="space60">
+          <Callout variant={status === "success" ? "success" : "error"}>
+            <CalloutHeading>
+              {status === "success" ? "Success" : "Error"}
+            </CalloutHeading>
+            <CalloutText>{message}</CalloutText>
+          </Callout>
+        </Box>
+      )}
       <ModalFooter>
-        <Button variant="secondary" onClick={handleClose}>
+        <Button variant="secondary" onClick={handleDismiss}>
           Cancel
         </Button>
         <Button variant="primary" onClick={handleSave}>

@@ -4272,6 +4272,14 @@
   resolved "https://registry.yarnpkg.com/@twilio-paste/aspect-ratio/-/aspect-ratio-10.1.0.tgz#d7f31b1f652d773d2267e0ca6153c12a783f137b"
   integrity sha512-suTGlaetyRCaYRWyaLMob7Lnw6jrbuHgvEcmuQKSZ6cfZ+KgE3lA2r4vEIQvyDQJAc+BPIxz1e73uYWG4b334Q==
 
+"@twilio-paste/avatar@^10.0.1":
+  version "10.0.1"
+  resolved "https://registry.yarnpkg.com/@twilio-paste/avatar/-/avatar-10.0.1.tgz#e2016b4eeade2bf3417a0eb5033caa100d879289"
+  integrity sha512-sXJ/sBmkvNoTkmUJX+HM9JKQj0Va1vTdL0GwuFrlofHgMfXwYzzI+FyC+E8kqp6K0NFxFnJNmqgtqLNpHA5Z2g==
+  dependencies:
+    "@types/react-is" "17.0.3"
+    react-is "18.0.0"
+
 "@twilio-paste/avatar@^9.1.0":
   version "9.1.0"
   resolved "https://registry.yarnpkg.com/@twilio-paste/avatar/-/avatar-9.1.0.tgz#80b568fefe571931c557125c7c625f95c4dafe89"
@@ -4934,6 +4942,11 @@
   version "12.2.0"
   resolved "https://registry.yarnpkg.com/@twilio-paste/toast/-/toast-12.2.0.tgz#e5ef14a45fc3aa6b8227807d19a1c44d154ffc41"
   integrity sha512-BDxh6aWAfL8Uizbv6KPmeizLOCvHmnJ1ACQdOLrEjzRn3gRLvWwQevgdrfBetR0Mw6Ix+GtOfM9jtr31H60XKQ==
+
+"@twilio-paste/toast@^13.0.1":
+  version "13.0.1"
+  resolved "https://registry.yarnpkg.com/@twilio-paste/toast/-/toast-13.0.1.tgz#6919ee544ae6956673c65be27c8ac07d09913d6c"
+  integrity sha512-bJPhr19uqTbAG7/T660UFvYhrd6oUkudZN1wUwGdF0JrNqqVDw/7PeoLS10UMf+y2cq/xKQ1UjynBd+WEinkQw==
 
 "@twilio-paste/tooltip-primitive@^2.0.1":
   version "2.0.1"

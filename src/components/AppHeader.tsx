@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { AppState } from "../store";
 
@@ -6,7 +6,7 @@ import { Text, useToaster } from "@twilio-paste/core";
 import { Menu, MenuButton, useMenuState, MenuItem } from "@twilio-paste/menu";
 import { ChevronDownIcon } from "@twilio-paste/icons/esm/ChevronDownIcon";
 
-import { Avatar } from "./Avatar";
+import { Avatar } from "@twilio-paste/avatar";
 import MemberProfileModal from "./modals/MemberProfileModal";
 import { getMemberProfile } from "../api/member";
 import { MemberProfileResponse } from "../types";
@@ -53,7 +53,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   const handleMemberProfileModalClose = () => {
     setShowMemberProfileModal(false);
-    setMemberProfile(null);
   };
 
   const handleMemberProfileModalOpen = async () => {
@@ -76,6 +75,21 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     }
   };
 
+  useEffect(() => {
+    const preloadProfile = async () => {
+      try {
+        const memberId = localStorage.getItem("member_id");
+        if (!memberId) return;
+        const profile = await getMemberProfile(memberId);
+        setMemberProfile(profile);
+      } catch (err) {
+        console.error("Failed to preload member profile:", err);
+      }
+    };
+
+    preloadProfile();
+  }, []);
+
   return (
     <div style={styles.appHeader}>
       <div style={styles.flex}>
@@ -88,10 +102,20 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </div>
       <div style={styles.userTile}>
-        <Avatar name={user} />
+        <Avatar
+          name={
+            memberProfile?.first_name && memberProfile?.last_name
+              ? `${memberProfile.first_name} ${memberProfile.last_name}`
+              : user
+          }
+          size="sizeIcon70"
+          src={memberProfile?.photo_url || undefined}
+        />
         <div style={{ padding: "0 10px" }}>
           <Text as="span" style={styles.userName}>
-            {user}
+            {memberProfile?.first_name && memberProfile?.last_name
+              ? `${memberProfile.first_name} ${memberProfile.last_name}`
+              : user}
           </Text>
           <Text
             as="span"
@@ -138,6 +162,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             interests: memberProfile.interests ?? "",
           }}
           memberProfile={memberProfile}
+          onSave={async () => {
+            const memberId = localStorage.getItem("member_id");
+            if (memberId) {
+              const updatedProfile = await getMemberProfile(memberId);
+              setMemberProfile(updatedProfile); // ✅ refresh UI
+            }
+          }}
         />
       )}
     </div>
