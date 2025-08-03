@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import {
   Anchor,
   Box,
@@ -16,11 +17,14 @@ import { Avatar } from "../Avatar";
 import { UserIcon } from "@twilio-paste/icons/cjs/UserIcon";
 
 import ConvoModal from "./ConvoModal";
+import MemberProfileViewModal from "./MemberProfileViewModal";
 import { Content } from "../../types";
 import { ReduxParticipant } from "../../store/reducers/participantsReducer";
 import { AppState } from "../../store";
 import { getTranslation } from "./../../utils/localUtils";
 import { useSelector } from "react-redux";
+import { getMemberProfileBatch } from "../../api/member";
+import { MemberProfileResponse } from "../../types";
 
 interface ManageParticipantsModalProps {
   participantsCount: number;
@@ -33,11 +37,11 @@ interface ManageParticipantsModalProps {
 }
 
 const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
-  props: ManageParticipantsModalProps
+  props
 ) => {
   const menu = useMenuState({ placement: "bottom-start" });
-
   const local = useSelector((state: AppState) => state.local);
+
   const participants = getTranslation(local, "participants");
   const addParticipant = getTranslation(local, "addParticipant");
   const smsParticipant = getTranslation(local, "smsParticipant");
@@ -45,10 +49,47 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
   const chatParticipant = getTranslation(local, "chatParticipant");
   const remove = getTranslation(local, "remove");
 
+  const [participantProfiles, setParticipantProfiles] = useState<
+    Record<string, MemberProfileResponse>
+  >({});
+
+  const [selectedProfile, setSelectedProfile] =
+    useState<MemberProfileResponse | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  useEffect(() => {
+    const identities = props.participantsList
+      .map((p) => p.identity)
+      .filter((id): id is string => typeof id === "string");
+
+    const uniqueIdentities = Array.from(new Set(identities));
+    if (uniqueIdentities.length === 0) return;
+
+    getMemberProfileBatch(uniqueIdentities).then((profiles) => {
+      const profileMap = profiles.reduce((acc, profile) => {
+        acc[profile.member_id] = profile;
+        return acc;
+      }, {} as Record<string, MemberProfileResponse>);
+      setParticipantProfiles(profileMap);
+    });
+  }, [props.participantsList]);
+
+  const getDisplayName = (participant: ReduxParticipant): string => {
+    const identity = participant.identity;
+    if (!identity) return "unknown";
+
+    const profile = participantProfiles[identity];
+    if (profile?.first_name || profile?.last_name) {
+      return `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim();
+    }
+
+    return identity;
+  };
+
   return (
     <>
       <ConvoModal
-        handleClose={() => props.handleClose()}
+        handleClose={props.handleClose}
         isModalOpen={props.isModalOpen}
         title={props.title}
         modalBody={
@@ -83,22 +124,19 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
                 </MenuItem>
                 <MenuItem
                   {...menu}
-                  onClick={() => {
-                    props.onClick(Content.AddWhatsApp);
-                  }}
+                  onClick={() => props.onClick(Content.AddWhatsApp)}
                 >
                   {whatsAppParticipant}
                 </MenuItem>
                 <MenuItem
                   {...menu}
-                  onClick={() => {
-                    props.onClick(Content.AddChat);
-                  }}
+                  onClick={() => props.onClick(Content.AddChat)}
                 >
                   {chatParticipant}
                 </MenuItem>
               </Menu>
             </Box>
+
             <Box
               style={{
                 marginTop: "12px",
@@ -117,43 +155,46 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
                 </THead>
                 <TBody>
                   {props.participantsList.length ? (
-                    props.participantsList.map((user) => (
-                      <Tr key={user.sid}>
-                        <Td width="size20">
-                          <Avatar
-                            size="sizeIcon80"
-                            name={
-                              (user.identity ||
-                                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                // @ts-ignore
-                                user.attributes["friendlyName"]) ??
-                              "unknown"
-                            }
-                          />
-                        </Td>
-                        <Td textAlign="left">
-                          <Text as="span" textAlign="left">
-                            {user.type == "chat"
-                              ? user.identity
-                              : // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                // @ts-ignore
-                                (user.attributes["friendlyName"] as string) ??
-                                "unknown"}
-                          </Text>
-                        </Td>
-                        <Td textAlign="right">
-                          {user.identity !==
-                          localStorage.getItem("username") ? (
+                    props.participantsList.map((user) => {
+                      const displayName = getDisplayName(user);
+                      const isCurrentUser =
+                        user.identity === localStorage.getItem("username");
+
+                      return (
+                        <Tr key={user.sid}>
+                          <Td width="size20">
+                            <Avatar size="sizeIcon80" name={displayName} />
+                          </Td>
+                          <Td textAlign="left">
                             <Anchor
                               href="#"
-                              onClick={() => props.onParticipantRemove(user)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const identity = user.identity;
+                                if (identity && participantProfiles[identity]) {
+                                  setSelectedProfile(
+                                    participantProfiles[identity]
+                                  );
+                                  setIsProfileModalOpen(true);
+                                }
+                              }}
                             >
-                              {remove}
+                              {displayName}
                             </Anchor>
-                          ) : null}
-                        </Td>
-                      </Tr>
-                    ))
+                          </Td>
+                          <Td textAlign="right">
+                            {!isCurrentUser ? (
+                              <Anchor
+                                href="#"
+                                onClick={() => props.onParticipantRemove(user)}
+                              >
+                                {remove}
+                              </Anchor>
+                            ) : null}
+                          </Td>
+                        </Tr>
+                      );
+                    })
                   ) : (
                     <Box
                       style={{
@@ -164,11 +205,7 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
                         height: "400px",
                       }}
                     >
-                      <Box
-                        style={{
-                          color: "#606B85",
-                        }}
-                      >
+                      <Box style={{ color: "#606B85" }}>
                         <Box
                           style={{
                             display: "flex",
@@ -186,9 +223,7 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
                         <Text
                           as="p"
                           fontSize="fontSize40"
-                          style={{
-                            color: "#606B85",
-                          }}
+                          style={{ color: "#606B85" }}
                         >
                           No participants
                         </Text>
@@ -200,6 +235,15 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
             </Box>
           </ModalBody>
         }
+      />
+
+      <MemberProfileViewModal
+        isOpen={isProfileModalOpen}
+        handleClose={() => {
+          setIsProfileModalOpen(false);
+          setSelectedProfile(null);
+        }}
+        memberProfile={selectedProfile}
       />
     </>
   );

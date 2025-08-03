@@ -1,10 +1,10 @@
-import { ReactElement } from "react";
-import { useSelector } from "react-redux";
+// App.tsx
 import { AppState } from "../store";
+import { useSelector } from "react-redux";
 import AppContainer from "./AppContainer";
 import AutoLogin from "./login/AutoLogin";
 
-function App(): ReactElement {
+function App() {
   const token = useSelector((state: AppState) => state.token);
 
   return (
@@ -14,5 +14,4 @@ function App(): ReactElement {
     </>
   );
 }
-
 export default App;

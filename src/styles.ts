@@ -29,7 +29,7 @@ export default {
   appHeader: {
     display: "flex",
     justifyContent: "space-between",
-    backgroundColor: "#06033A",
+    backgroundColor: "#FFCC01",
     padding: "20px 25px",
   },
   appLogoWrapper: {
@@ -45,7 +45,7 @@ export default {
     fontSize: "14px",
     fontWeight: 600,
     textAlign: "center",
-    color: "#FFFFFF",
+    color: "#C10E2E",
     lineHeight: "20px",
     paddingLeft: "16px",
   } as CSSProperties,
@@ -53,7 +53,7 @@ export default {
     fontSize: "12px",
     fontWeight: 600,
     textAlign: "left",
-    color: "#AEB2C1",
+    color: "#000000",
     lineHeight: "20px",
   } as CSSProperties,
   userTile: {
@@ -61,7 +61,7 @@ export default {
     alignItems: "flex-start",
   },
   userName: {
-    color: "#FFFFFF",
+    color: "#C10E2E",
     fontSize: "12px",
     fontWeight: 600,
     lineHeight: "20px",
@@ -76,6 +76,7 @@ export default {
     fontWeight: "400",
     alignItems: "center",
     justifyContent: "center",
+    color: "#000000",
   } as CSSProperties,
   paginationSpinner: {
     display: "flex",
@@ -92,6 +93,7 @@ export default {
   buttonWrapper: {
     flexDirection: "row",
     paddingRight: "16px",
+    color: "#C10E2E",
   } as CSSProperties,
   convosWrapperBox: {
     height: "100%",
@@ -119,10 +121,12 @@ export default {
     padding: "14px 16px",
     width: "100%",
     borderBottom: "1px solid #CACDD8",
+    color: "#C10E2E",
   } as CSSProperties,
   addParticipantsButton: {
     padding: "14px 16px",
     width: "100%",
+    color: "#C10E2E",
   } as CSSProperties,
   loginContainer: {
     display: "flex",
