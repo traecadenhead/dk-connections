@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Modal,
   ModalHeader,
@@ -7,8 +7,10 @@ import {
   ModalFooter,
 } from "@twilio-paste/modal";
 import { Button } from "@twilio-paste/button";
-import { Box, Text } from "@twilio-paste/core";
+import { Box, Text, Tooltip } from "@twilio-paste/core";
+import { StarIcon } from "@twilio-paste/icons/esm/StarIcon";
 import { MemberProfileResponse } from "../../types";
+import { createConnection } from "../../api/connection";
 
 interface MemberProfileViewModalProps {
   isOpen: boolean;
@@ -21,9 +23,14 @@ const MemberProfileViewModal: React.FC<MemberProfileViewModalProps> = ({
   handleClose,
   memberProfile,
 }) => {
-  if (!memberProfile) return null;
+  const memberId = localStorage.getItem("member_id");
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connected, setConnected] = useState(false);
+
+  if (!memberProfile || !memberId) return null;
 
   const {
+    member_id,
     first_name,
     last_name,
     initiated_chapter_name,
@@ -33,6 +40,23 @@ const MemberProfileViewModal: React.FC<MemberProfileViewModalProps> = ({
     interests,
   } = memberProfile;
 
+  const handleConnect = async () => {
+    if (!member_id || connected) return;
+
+    setIsConnecting(true);
+    try {
+      await createConnection({
+        member_id: memberId,
+        connected_member_id: memberProfile.member_id,
+      });
+      setConnected(true);
+    } catch (error) {
+      console.error("Failed to connect:", error);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -41,9 +65,23 @@ const MemberProfileViewModal: React.FC<MemberProfileViewModalProps> = ({
       ariaLabelledby="member-profile-view"
     >
       <ModalHeader>
-        <ModalHeading as="h3" id="member-profile-view">
-          {first_name} {last_name}
-        </ModalHeading>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <ModalHeading as="h3" id="member-profile-view">
+            {first_name} {last_name}
+          </ModalHeading>
+          <Tooltip
+            text={connected ? "Already connected" : "Connect with member"}
+          >
+            <Button
+              variant={connected ? "secondary" : "destructive"}
+              onClick={handleConnect}
+              disabled={isConnecting || connected}
+              size="icon"
+            >
+              <StarIcon decorative={false} title="Connect" />
+            </Button>
+          </Tooltip>
+        </Box>
       </ModalHeader>
 
       <ModalBody>
