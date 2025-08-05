@@ -9,8 +9,9 @@ import {
 import { Button } from "@twilio-paste/button";
 import { Box, Text, Tooltip } from "@twilio-paste/core";
 import { StarIcon } from "@twilio-paste/icons/esm/StarIcon";
+import { DeleteIcon } from "@twilio-paste/icons/cjs/DeleteIcon";
 import { MemberProfileResponse } from "../../types";
-import { createConnection } from "../../api/connection";
+import { createConnection, removeConnection } from "../../api/connection";
 
 interface MemberProfileViewModalProps {
   isOpen: boolean;
@@ -40,18 +41,24 @@ const MemberProfileViewModal: React.FC<MemberProfileViewModalProps> = ({
     interests,
   } = memberProfile;
 
-  const handleConnect = async () => {
-    if (!member_id || connected) return;
-
+  const toggleConnection = async () => {
     setIsConnecting(true);
     try {
-      await createConnection({
-        member_id: memberId,
-        connected_member_id: memberProfile.member_id,
-      });
-      setConnected(true);
+      if (connected) {
+        await removeConnection({
+          member_id: memberId,
+          connected_member_id: member_id,
+        });
+        setConnected(false);
+      } else {
+        await createConnection({
+          member_id: memberId,
+          connected_member_id: member_id,
+        });
+        setConnected(true);
+      }
     } catch (error) {
-      console.error("Failed to connect:", error);
+      console.error("Connection toggle failed:", error);
     } finally {
       setIsConnecting(false);
     }
@@ -65,25 +72,36 @@ const MemberProfileViewModal: React.FC<MemberProfileViewModalProps> = ({
       ariaLabelledby="member-profile-view"
     >
       <ModalHeader>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
-          <ModalHeading as="h3" id="member-profile-view">
-            {first_name} {last_name}
-          </ModalHeading>
+        <Box display="flex" alignItems="center" width="100%">
+          <Box>
+            <ModalHeading as="h3" id="member-profile-view">
+              {first_name} {last_name}
+            </ModalHeading>
+            {connected && (
+              <Text as="p" fontSize="fontSize20" color="colorTextSuccess">
+                Connected
+              </Text>
+            )}
+          </Box>
+          <Box flexGrow={1} />
           <Tooltip
-            text={connected ? "Already connected" : "Connect with member"}
+            text={connected ? "Remove connection" : "Connect with member"}
           >
             <Button
-              variant={connected ? "secondary" : "destructive"}
-              onClick={handleConnect}
-              disabled={isConnecting || connected}
+              variant="destructive"
+              onClick={toggleConnection}
+              disabled={isConnecting}
               size="icon"
             >
-              <StarIcon decorative={false} title="Connect" />
+              {connected ? (
+                <DeleteIcon decorative={false} title="Remove connection" />
+              ) : (
+                <StarIcon decorative={false} title="Connect" />
+              )}
             </Button>
           </Tooltip>
         </Box>
       </ModalHeader>
-
       <ModalBody>
         <Box marginBottom="space60">
           <Text as="p" color="colorTextWeak">
@@ -140,7 +158,7 @@ const MemberProfileViewModal: React.FC<MemberProfileViewModalProps> = ({
       </ModalBody>
 
       <ModalFooter>
-        <Button variant="primary" onClick={handleClose}>
+        <Button variant="destructive" onClick={handleClose}>
           Close
         </Button>
       </ModalFooter>
