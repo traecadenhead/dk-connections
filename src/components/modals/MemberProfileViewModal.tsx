@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   ModalHeader,
@@ -17,16 +17,24 @@ interface MemberProfileViewModalProps {
   isOpen: boolean;
   handleClose: () => void;
   memberProfile: MemberProfileResponse | null;
+  updateConnected: (connected: boolean) => void;
 }
 
 const MemberProfileViewModal: React.FC<MemberProfileViewModalProps> = ({
   isOpen,
   handleClose,
   memberProfile,
+  updateConnected,
 }) => {
   const memberId = localStorage.getItem("member_id");
   const [isConnecting, setIsConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    if (memberProfile) {
+      setConnected(memberProfile.is_connected || false);
+    }
+  }, [memberProfile]);
 
   if (!memberProfile || !memberId) return null;
 
@@ -50,12 +58,14 @@ const MemberProfileViewModal: React.FC<MemberProfileViewModalProps> = ({
           connected_member_id: member_id,
         });
         setConnected(false);
+        updateConnected(false);
       } else {
         await createConnection({
           member_id: memberId,
           connected_member_id: member_id,
         });
         setConnected(true);
+        updateConnected(true);
       }
     } catch (error) {
       console.error("Connection toggle failed:", error);

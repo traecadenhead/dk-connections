@@ -86,6 +86,24 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
     return identity;
   };
 
+  const updateConnected = (memberId: string, connected: boolean) => {
+    setParticipantProfiles((prev) => ({
+      ...prev,
+      [memberId]: {
+        ...prev[memberId],
+        is_connected: connected,
+      },
+    }));
+
+    // Also update selectedProfile if it's currently open and matches
+    if (selectedProfile?.member_id === memberId) {
+      setSelectedProfile({
+        ...selectedProfile,
+        is_connected: connected,
+      });
+    }
+  };
+
   return (
     <>
       <ConvoModal
@@ -244,6 +262,11 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
           setSelectedProfile(null);
         }}
         memberProfile={selectedProfile}
+        updateConnected={(connected) => {
+          if (selectedProfile) {
+            updateConnected(selectedProfile.member_id, connected);
+          }
+        }}
       />
     </>
   );

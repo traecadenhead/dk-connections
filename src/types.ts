@@ -68,4 +68,5 @@ export interface MemberProfileResponse {
   photo_url: string | null;
   bio: string | null;
   interests: string | null;
+  is_connected: boolean;
 }
