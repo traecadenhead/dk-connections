@@ -1,4 +1,5 @@
 // src/api/connection.ts
+import { MemberConnectionResponse } from "../types";
 
 export async function createConnection(data: {
   member_id: string;
@@ -39,4 +40,24 @@ export async function removeConnection(data: {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to remove connection");
   }
+}
+
+export async function getMemberConnections(
+  memberId: string
+): Promise<MemberConnectionResponse[]> {
+  const response = await fetch(
+    `${process.env.REACT_APP_API_URL}/connections/${memberId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to fetch connections");
+  }
+
+  return response.json();
 }

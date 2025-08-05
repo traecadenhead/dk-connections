@@ -10,9 +10,8 @@ import {
   THead,
   Tr,
 } from "@twilio-paste/core";
-import { MenuButton, Menu, MenuItem, useMenuState } from "@twilio-paste/menu";
 import { Text } from "@twilio-paste/text";
-import { ChevronDownIcon } from "@twilio-paste/icons/esm/ChevronDownIcon";
+import { Button } from "@twilio-paste/button";
 import { Avatar } from "../Avatar";
 import { UserIcon } from "@twilio-paste/icons/cjs/UserIcon";
 
@@ -39,14 +38,10 @@ interface ManageParticipantsModalProps {
 const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
   props
 ) => {
-  const menu = useMenuState({ placement: "bottom-start" });
   const local = useSelector((state: AppState) => state.local);
 
   const participants = getTranslation(local, "participants");
   const addParticipant = getTranslation(local, "addParticipant");
-  const smsParticipant = getTranslation(local, "smsParticipant");
-  const whatsAppParticipant = getTranslation(local, "whatsAppParticipant");
-  const chatParticipant = getTranslation(local, "chatParticipant");
   const remove = getTranslation(local, "remove");
 
   const [participantProfiles, setParticipantProfiles] = useState<
@@ -129,30 +124,12 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
               >
                 {participants} ({props.participantsCount})
               </Box>
-              <MenuButton {...menu} variant="secondary">
-                {addParticipant}{" "}
-                <ChevronDownIcon decorative size="sizeIcon10" />
-              </MenuButton>
-              <Menu {...menu} aria-label="Preferences">
-                <MenuItem
-                  {...menu}
-                  onClick={() => props.onClick(Content.AddSMS)}
-                >
-                  {smsParticipant}
-                </MenuItem>
-                <MenuItem
-                  {...menu}
-                  onClick={() => props.onClick(Content.AddWhatsApp)}
-                >
-                  {whatsAppParticipant}
-                </MenuItem>
-                <MenuItem
-                  {...menu}
-                  onClick={() => props.onClick(Content.AddChat)}
-                >
-                  {chatParticipant}
-                </MenuItem>
-              </Menu>
+              <Button
+                variant="destructive"
+                onClick={() => props.onClick(Content.AddChat)}
+              >
+                {addParticipant}
+              </Button>
             </Box>
 
             <Box

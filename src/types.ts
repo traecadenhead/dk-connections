@@ -17,6 +17,7 @@ export enum ActionName {
   Save = "save",
   Create = "create",
   Manage = "manage",
+  Add = "add",
 }
 
 export enum InputType {
@@ -69,4 +70,13 @@ export interface MemberProfileResponse {
   bio: string | null;
   interests: string | null;
   is_connected: boolean;
+}
+
+export interface MemberConnectionResponse {
+  id: number;
+  member_id: string;
+  connected_member_id: string;
+  created_at: string; // ISO datetime string
+  updated_at: string;
+  profile?: MemberProfileResponse;
 }

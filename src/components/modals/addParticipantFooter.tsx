@@ -41,7 +41,7 @@ const AddParticipantFooter: React.FC<AddParticipantFooterProps> = (
         <ModalFooterActions>
           <Button
             disabled={props.isSaveDisabled ?? false}
-            variant="primary"
+            variant="destructive"
             onClick={() => {
               props.action();
             }}

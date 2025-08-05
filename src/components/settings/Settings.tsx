@@ -304,6 +304,7 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
               setErrorToShow(ERROR_MODAL_MESSAGES.ADD_PARTICIPANT);
             }
           }}
+          participantIds={props.participants.map((p) => p.identity || "")}
         />
       )}
       {/* {isLoading ? (
