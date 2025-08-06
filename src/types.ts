@@ -70,6 +70,8 @@ export interface MemberProfileResponse {
   bio: string | null;
   interests: string | null;
   is_connected: boolean;
+  admin_chapters: string[];
+  admin_national: boolean;
 }
 
 export interface MemberConnectionResponse {
@@ -79,4 +81,10 @@ export interface MemberConnectionResponse {
   created_at: string; // ISO datetime string
   updated_at: string;
   profile?: MemberProfileResponse;
+}
+
+export enum ConversationType {
+  PERSONAL = "personal",
+  CHAPTER = "chapter",
+  NATIONAL = "national",
 }

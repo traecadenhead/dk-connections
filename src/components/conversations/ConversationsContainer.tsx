@@ -1,34 +1,61 @@
-import React, { useState } from "react";
-import { Client } from "@twilio/conversations";
+import React, { useEffect, useState } from "react";
+import { Box, Input, Button, Spinner } from "@twilio-paste/core";
 import { ChevronDoubleLeftIcon } from "@twilio-paste/icons/esm/ChevronDoubleLeftIcon";
-import { Box, Input } from "@twilio-paste/core";
 import { ChevronDoubleRightIcon } from "@twilio-paste/icons/esm/ChevronDoubleRightIcon";
-
-import CreateConversationButton from "./CreateConversationButton";
+import { PlusIcon } from "@twilio-paste/icons/esm/PlusIcon";
 import ConversationsList from "./ConversationsList";
+import CreateConversationModal from "../modals/CreateConversationModal";
 import styles from "../../styles";
-
+import { getTranslation } from "../../utils/localUtils";
 import { useDispatch, useSelector } from "react-redux";
-import { filterConversations } from "./../../store/action-creators";
+import { filterConversations } from "../../store/action-creators";
 import { AppState } from "../../store";
-import { getTranslation } from "./../../utils/localUtils";
+import { getMemberProfile } from "../../api/member";
 
-interface ConvosContainerProps {
-  client?: Client;
-}
-
-const ConversationsContainer: React.FC<ConvosContainerProps> = (
-  props: ConvosContainerProps
-) => {
+const ConversationsContainer: React.FC = () => {
   const [listHidden, hideList] = useState(false);
-  const dispatch = useDispatch();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [adminChapters, setAdminChapters] = useState<string[]>([]);
+  const [adminNational, setAdminNational] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  const dispatch = useDispatch();
   const local = useSelector((state: AppState) => state.local);
   const search = getTranslation(local, "convoSearch");
+  const createNewConvo = getTranslation(local, "createNewConvo");
 
   const handleSearch = (searchString: string) => {
     dispatch(filterConversations(searchString));
   };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const memberId = localStorage.getItem("member_id");
+        const profile = await getMemberProfile(memberId ?? "");
+        setAdminChapters(profile.admin_chapters || []);
+        setAdminNational(profile.admin_national || false);
+      } catch (error) {
+        console.error("Failed to fetch member profile:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <Box padding="space70">
+        <Spinner
+          size="sizeIcon70"
+          decorative={false}
+          title="Loading conversations…"
+        />
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -39,10 +66,15 @@ const ConversationsContainer: React.FC<ConvosContainerProps> = (
       }
     >
       <Box style={styles.newConvoButton}>
-        <CreateConversationButton
-          client={props.client}
-          collapsed={listHidden}
-        />
+        <Button
+          fullWidth
+          variant="secondary"
+          onClick={() => setIsModalOpen(true)}
+        >
+          <PlusIcon decorative={false} title="Add convo" />
+          {!listHidden ? createNewConvo : null}
+        </Button>
+
         <Box marginTop="space60">
           <Input
             aria-describedby="convo_string_search"
@@ -56,25 +88,35 @@ const ConversationsContainer: React.FC<ConvosContainerProps> = (
           />
         </Box>
       </Box>
+
       <Box style={styles.convoList}>
         {!listHidden ? <ConversationsList /> : null}
       </Box>
+
       <Box style={styles.collapseButtonBox}>
         <Box
           paddingTop="space30"
-          style={{
-            paddingLeft: 10,
-            paddingRight: 10,
-          }}
+          style={{ paddingLeft: 10, paddingRight: 10 }}
           onClick={() => hideList(!listHidden)}
         >
           {listHidden ? (
-            <ChevronDoubleRightIcon decorative={false} title="Collapse" />
+            <ChevronDoubleRightIcon decorative={false} title="Expand" />
           ) : (
             <ChevronDoubleLeftIcon decorative={false} title="Collapse" />
           )}
         </Box>
       </Box>
+
+      <CreateConversationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        adminChapters={adminChapters}
+        adminNational={adminNational}
+        onCreate={(data) => {
+          // Optional: trigger refetch or update conversations list
+          console.log("Create conversation with:", data);
+        }}
+      />
     </Box>
   );
 };

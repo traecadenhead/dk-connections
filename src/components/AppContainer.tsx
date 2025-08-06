@@ -313,7 +313,7 @@ const AppContainer: React.FC = () => {
         />
       </Box>
       <Box style={stylesheet.appContainer(alertsExist)}>
-        <ConversationsContainer client={client} />
+        <ConversationsContainer />
         <Box style={stylesheet.messagesWrapper}>
           <ConversationContainer
             conversation={openedConversation}
