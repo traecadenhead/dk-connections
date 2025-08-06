@@ -51,7 +51,7 @@ export const translations: Translations = {
     add: "Add",
     remove: "Remove",
     signout: "Sign Out",
-    userProfileTxt: "Member Profile",
+    userProfileTxt: "My Profile",
     identityTxt: "Identity",
     friendlyNameTxt: "Name (friendly_name)",
     selectLocal: "Select a Local",
@@ -82,6 +82,7 @@ export const translations: Translations = {
     userIdentity: "User identity",
     userIdentityHelperTxt:
       "The identity used by the participant in Conversations.",
+    myConnectionsTxt: "My Connections",
   },
   "es-ES": {
     greeting: "Seleccione una conversación a la izquierda para comenzar.",
@@ -136,6 +137,7 @@ export const translations: Translations = {
     userIdentity: "Identidad de usuario",
     userIdentityHelperTxt:
       "La identidad utilizada por el participante en Conversaciones.",
+    myConnectionsTxt: "My Connections",
   },
   "fr-FR": {
     greeting: "Sélectionnez une conversation sur la gauche pour commencer.",
@@ -189,6 +191,7 @@ export const translations: Translations = {
     userIdentity: "Identité de l'utilisateur",
     userIdentityHelperTxt:
       "L'identité utilisée par le participant dans les Conversations.",
+    myConnectionsTxt: "My Connections",
   },
   // Add translations for other languages as needed
 };

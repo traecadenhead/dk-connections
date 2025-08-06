@@ -8,6 +8,7 @@ import { ChevronDownIcon } from "@twilio-paste/icons/esm/ChevronDownIcon";
 
 import { Avatar } from "@twilio-paste/avatar";
 import MemberProfileModal from "./modals/MemberProfileModal";
+import MemberConnectionsModal from "./modals/MemberConnectionsModal";
 import { getMemberProfile } from "../api/member";
 import { MemberProfileResponse } from "../types";
 import { AppLogo, LOGO_SUB_TITLE, LOGO_TITLE } from "../branding";
@@ -33,12 +34,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
   const [memberProfile, setMemberProfile] =
     useState<MemberProfileResponse | null>(null);
+  const [showConnectionsModal, setShowConnectionsModal] = useState(false);
 
   const online = getTranslation(local, "online");
   const connecting = getTranslation(local, "connecting");
   const offline = getTranslation(local, "offline");
   const signout = getTranslation(local, "signout");
   const memberProfileTxt = getTranslation(local, "userProfileTxt");
+  const myConnectionsTxt = getTranslation(local, "myConnectionsTxt");
 
   const label: "online" | "connecting" | "offline" = useMemo(() => {
     switch (connectionState) {
@@ -143,11 +146,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           />
         </MenuButton>
         <Menu {...menu} aria-label="Preferences">
-          <MenuItem {...menu} onClick={onSignOut}>
-            {signout}
-          </MenuItem>
           <MenuItem {...menu} onClick={handleMemberProfileModalOpen}>
             {memberProfileTxt}
+          </MenuItem>
+          <MenuItem {...menu} onClick={() => setShowConnectionsModal(true)}>
+            {myConnectionsTxt}
+          </MenuItem>
+          <MenuItem {...menu} onClick={onSignOut}>
+            {signout}
           </MenuItem>
         </Menu>
       </div>
@@ -169,6 +175,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
               setMemberProfile(updatedProfile); // ✅ refresh UI
             }
           }}
+        />
+      )}
+
+      {showConnectionsModal && (
+        <MemberConnectionsModal
+          isOpen={showConnectionsModal}
+          handleClose={() => setShowConnectionsModal(false)}
         />
       )}
     </div>

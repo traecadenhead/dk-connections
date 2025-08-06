@@ -6,12 +6,13 @@ import {
   ChatMessageMeta,
   ChatMessageMetaItem,
   Separator,
+  Anchor,
 } from "@twilio-paste/core";
 import {
   ReduxMedia,
   ReduxMessage,
 } from "../../store/reducers/messageListReducer";
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import MessageEditMode from "./MessageEditMode";
 import MessageMedia from "./MessageMedia";
 import { CONVERSATION_MESSAGES, MAX_MESSAGE_LINE_WIDTH } from "../../constants";
@@ -28,6 +29,9 @@ import {
 } from "../../helpers";
 import { NotificationsType } from "../../store/reducers/notificationsReducer";
 import { ReactionsType } from "../../types";
+import MemberProfileViewModal from "../modals/MemberProfileViewModal";
+import { MemberProfileResponse } from "../../types";
+import { getMemberProfile } from "../../api/member";
 
 const today = new Date().toDateString();
 
@@ -48,31 +52,38 @@ interface MessageItemProps {
   addNotifications: (notification: NotificationsType) => void;
 }
 
-const MessageItem: React.FC<MessageItemProps> = (props: MessageItemProps) => {
-  const {
-    message,
-    conversationAttachments,
-    onDownloadAttachments,
-    onFileOpen,
-    setImagePreview,
-    getAuthorFriendlyName,
-    participants,
-    use24hTimeFormat,
-    firstMessagePerDay,
-    addNotifications,
-  } = props;
+const MessageItem: React.FC<MessageItemProps> = ({
+  message,
+  conversationAttachments,
+  onDownloadAttachments,
+  onFileOpen,
+  setImagePreview,
+  getAuthorFriendlyName,
+  participants,
+  use24hTimeFormat,
+  firstMessagePerDay,
+  addNotifications,
+}) => {
   const [isEditingMessage, setIsEditingMessage] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] =
+    useState<ReduxParticipant | null>(null);
+  const [memberProfile, setMemberProfile] =
+    useState<MemberProfileResponse | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
   const messageImages: ReduxMedia[] = [];
   const messageFiles: ReduxMedia[] = [];
   const currentDateCreated = message.dateCreated ?? null;
+
   (message.attachedMedia || []).forEach((file) => {
     const { contentType } = file;
     if (contentType.includes("image")) {
       messageImages.push(file);
-      return;
+    } else {
+      messageFiles.push(file);
     }
-    messageFiles.push(file);
   });
+
   const attributes = message.attributes as Record<
     string,
     ReactionsType | undefined
@@ -86,9 +97,11 @@ const MessageItem: React.FC<MessageItemProps> = (props: MessageItemProps) => {
 
   const isOutbound = message.author === localStorage.getItem("username");
 
-  const MetaItemWithMargin: React.FC<{ children: ReactNode }> = (props) => (
+  const MetaItemWithMargin: React.FC<{ children: ReactNode }> = ({
+    children,
+  }) => (
     <ChatMessageMetaItem>
-      <div style={{ marginTop: "5px" }}>{props.children}</div>
+      <div style={{ marginTop: "5px" }}>{children}</div>
     </ChatMessageMetaItem>
   );
 
@@ -115,7 +128,7 @@ const MessageItem: React.FC<MessageItemProps> = (props: MessageItemProps) => {
       await getSdkMessageObject(message).updateBody(editedText);
       message.body = editedText;
       successNotification({
-        message: `${CONVERSATION_MESSAGES.MESSAGE_EDITED}`,
+        message: CONVERSATION_MESSAGES.MESSAGE_EDITED,
         addNotifications,
       });
       setIsEditingMessage(false);
@@ -126,6 +139,26 @@ const MessageItem: React.FC<MessageItemProps> = (props: MessageItemProps) => {
       );
     }
   };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!selectedParticipant) return;
+      try {
+        const profile = await getMemberProfile(
+          selectedParticipant.identity ?? ""
+        );
+        setMemberProfile(profile);
+        setIsProfileModalOpen(true);
+      } catch (error) {
+        console.error("Failed to fetch member profile:", error);
+      }
+    };
+    fetchProfile();
+  }, [selectedParticipant]);
+
+  const authorParticipant = participants.find(
+    (p) => p.identity === message.author
+  );
 
   let metaItems = [
     <ChatMessageMetaItem key={0}>
@@ -186,15 +219,37 @@ const MessageItem: React.FC<MessageItemProps> = (props: MessageItemProps) => {
       <MessageStatus message={message} channelParticipants={participants} />
     </MetaItemWithMargin>,
     <MetaItemWithMargin key={2}>
-      {isOutbound
-        ? `${getAuthorFriendlyName(message)}・${getMessageTime(
-            message,
-            use24hTimeFormat
-          )}`
-        : `${getMessageTime(
-            message,
-            use24hTimeFormat
-          )}・${getAuthorFriendlyName(message)}`}
+      {isOutbound ? (
+        <>
+          <Anchor
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (authorParticipant) {
+                setSelectedParticipant(authorParticipant);
+              }
+            }}
+          >
+            {getAuthorFriendlyName(message)}
+          </Anchor>
+          ・{getMessageTime(message, use24hTimeFormat)}
+        </>
+      ) : (
+        <>
+          {getMessageTime(message, use24hTimeFormat)}・
+          <Anchor
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (authorParticipant) {
+                setSelectedParticipant(authorParticipant);
+              }
+            }}
+          >
+            {getAuthorFriendlyName(message)}
+          </Anchor>
+        </>
+      )}
     </MetaItemWithMargin>,
   ];
 
@@ -271,78 +326,22 @@ const MessageItem: React.FC<MessageItemProps> = (props: MessageItemProps) => {
           {metaItems}
         </ChatMessageMeta>
       </ChatMessage>
+
+      {isProfileModalOpen && memberProfile && (
+        <MemberProfileViewModal
+          isOpen={isProfileModalOpen}
+          handleClose={() => {
+            setIsProfileModalOpen(false);
+            setSelectedParticipant(null);
+            setMemberProfile(null);
+          }}
+          memberProfile={memberProfile}
+          updateConnected={() => {
+            memberProfile.is_connected;
+          }}
+        />
+      )}
     </div>
-    // todo: delete only when full functionality is transferred over
-    // <div key={message.sid + "message"}>
-    //   {lastReadIndex !== -1 &&
-    //   horizonMessageCount &&
-    //   showHorizonIndex === message.index ? (
-    //     <Horizon ref={myRef} messageCount={horizonMessageCount} />
-    //   ) : null}
-    //   <MessageView
-    //     reactions={attributes["reactions"]}
-    //     text={wrappedBody}
-    //     media={
-    //       message.attachedMedia?.length ? (
-    //         <MessageMedia
-    //           key={message.sid}
-    //           attachments={conversationAttachments?.[message.sid]}
-    //           onDownload={async () =>
-    //             await onDownloadAttachments(message)
-    //           }
-    //           images={messageImages}
-    //           files={messageFiles}
-    //           sending={message.index === -1}
-    //           onOpen={(
-    //             mediaSid: string,
-    //             image?: ReduxMedia,
-    //             file?: ReduxMedia
-    //           ) => {
-    //             if (file) {
-    //               onFileOpen(
-    //                 conversationAttachments?.[message.sid][mediaSid],
-    //                 file
-    //               );
-    //               return;
-    //             }
-    //             if (image) {
-    //               setImagePreview({
-    //                 message,
-    //                 file: conversationAttachments?.[message.sid][
-    //                   mediaSid
-    //                 ],
-    //                 sid: mediaSid,
-    //               });
-    //             }
-    //           }}
-    //         />
-    //       ) : null
-    //     }
-    //     author={message.author ?? ""}
-    //     getStatus={getMessageStatus(message, props.participants)}
-    //     onDeleteMessage={async () => {
-    //       try {
-    //         await getSdkMessageObject(message).remove();
-    //         successNotification({
-    //           message: "Message deleted.",
-    //           addNotifications,
-    //         });
-    //       } catch (e) {
-    //         unexpectedErrorNotification(e.message, addNotifications);
-    //       }
-    //     }}
-    //     topPadding={setTopPadding(index)}
-    //     lastMessageBottomPadding={index === messagesLength - 1 ? 16 : 0}
-    //     sameAuthorAsPrev={setTopPadding(index) !== theme.space.space20}
-    //     messageTime={getMessageTime(message)}
-    //     updateAttributes={(attribute) =>
-    //       getSdkMessageObject(message).updateAttributes({
-    //         ...attributes,
-    //         ...attribute,
-    //       })
-    //     }
-    //   />
-    // </div>
   );
 };
 

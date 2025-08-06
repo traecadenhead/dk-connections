@@ -219,7 +219,7 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
           Cancel
         </Button>
         <Button
-          variant="primary"
+          variant="destructive"
           onClick={handleSave}
           disabled={uploadingPhoto}
         >
