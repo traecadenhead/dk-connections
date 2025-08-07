@@ -63,9 +63,10 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
     }
   }, [conversation?.sid]);
 
-  const isAdmin = fullConversation?.admins?.some(
+  const isAdmin = (fullConversation?.admins ?? []).some(
     (admin) => admin.member_id === memberId
   );
+
   const isReadOnly = fullConversation?.is_read_only;
 
   useEffect(() => {
