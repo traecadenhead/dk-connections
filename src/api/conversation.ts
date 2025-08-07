@@ -65,6 +65,26 @@ export async function getNationalConversations(): Promise<
   return response.json();
 }
 
+export async function getConversationBySid(
+  conversation_sid: string
+): Promise<MemberConversation> {
+  const response = await fetch(
+    `${process.env.REACT_APP_API_URL}/conversations/${conversation_sid}`,
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to fetch conversation");
+  }
+
+  return response.json();
+}
+
 export async function addConversationParticipant(
   conversationSid: string,
   memberId: string

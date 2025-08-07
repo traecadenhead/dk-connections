@@ -12,7 +12,7 @@ interface ConversationDetailsProps {
   convoSid: string;
   participants: ReduxParticipant[];
   convo: ReduxConversation;
-  updateConvoName: (title: string) => void;
+  updateConvoName?: (title: string) => void;
 }
 
 const ConversationDetails: React.FC<ConversationDetailsProps> = (
@@ -42,7 +42,7 @@ const ConversationDetails: React.FC<ConversationDetailsProps> = (
         !inputRef.current.contains(event.target as Node)
       ) {
         setIsEditing(false);
-        if (editedText !== props.convo.friendlyName) {
+        if (editedText !== props.convo.friendlyName && props.updateConvoName) {
           props.updateConvoName(editedText);
         }
       }
@@ -51,7 +51,7 @@ const ConversationDetails: React.FC<ConversationDetailsProps> = (
     const handleKeyPress = (event: KeyboardEvent) => {
       if (event.key === "Enter") {
         setIsEditing(false);
-        if (editedText !== props.convo.friendlyName) {
+        if (editedText !== props.convo.friendlyName && props.updateConvoName) {
           props.updateConvoName(editedText);
         }
       }
@@ -110,7 +110,9 @@ const ConversationDetails: React.FC<ConversationDetailsProps> = (
           ) : (
             <>{props.convo.friendlyName ?? props.convo.sid}</>
           )}
-          <EditIcon decorative={false} title="Edit conversation name" />
+          {props.updateConvoName && (
+            <EditIcon decorative={false} title="Edit conversation name" />
+          )}
         </Box>
         <Box
           style={{

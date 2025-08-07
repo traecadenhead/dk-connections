@@ -96,6 +96,7 @@ export interface MemberConversation {
   created_by: string;
   created_at: string; // ISO datetime string
   updated_at: string; // ISO datetime string
+  admins: ConversationAdmin[];
 }
 
 export enum ConversationType {
@@ -109,4 +110,11 @@ export interface MinimalConversation {
   name: string;
   type: ConversationType;
   chapterId?: string;
+}
+
+export interface ConversationAdmin {
+  id: number;
+  conversation_id: number;
+  member_id: string;
+  created_at: string; // ISO datetime string
 }
