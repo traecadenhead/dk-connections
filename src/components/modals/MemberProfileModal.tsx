@@ -56,7 +56,6 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
       }
       setStatus("success");
       setMessage("Profile updated successfully!");
-
       setTimeout(() => {
         setStatus("idle");
         setMessage(null);
@@ -87,17 +86,19 @@ const MemberProfileModal: React.FC<MemberProfileModalProps> = ({
             {memberProfile?.first_name} {memberProfile?.last_name}
           </Text>
           <Text as="p" color="colorTextWeak">
-            {memberProfile?.initiated_chapter_name && (
-              <>
-                Initiated at {memberProfile.initiated_chapter_name}
-                <br />
-              </>
-            )}
-            {memberProfile?.affiliated_chapter_name && (
-              <>Affiliated with {memberProfile.affiliated_chapter_name}</>
-            )}
+            <>
+              {memberProfile?.chapters.map((chapter, idx) => (
+                <div key={`chapter-${idx}`}>
+                  {chapter.affiliation_type} with {chapter.chapter_name}
+                </div>
+              ))}
+            </>
           </Text>
         </Box>
+
+        {/* Upload Photo section – unchanged */}
+        {/* Bio section – unchanged */}
+        {/* Interests section – unchanged */}
 
         <Box marginBottom="space60">
           <Label htmlFor="photoUpload">Upload Photo</Label>

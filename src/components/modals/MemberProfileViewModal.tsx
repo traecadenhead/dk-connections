@@ -38,16 +38,8 @@ const MemberProfileViewModal: React.FC<MemberProfileViewModalProps> = ({
 
   if (!memberProfile || !memberId) return null;
 
-  const {
-    member_id,
-    first_name,
-    last_name,
-    initiated_chapter_name,
-    affiliated_chapter_name,
-    photo_url,
-    bio,
-    interests,
-  } = memberProfile;
+  const { member_id, first_name, last_name, photo_url, bio, interests } =
+    memberProfile;
 
   const toggleConnection = async () => {
     setIsConnecting(true);
@@ -115,15 +107,13 @@ const MemberProfileViewModal: React.FC<MemberProfileViewModalProps> = ({
       <ModalBody>
         <Box marginBottom="space60">
           <Text as="p" color="colorTextWeak">
-            {initiated_chapter_name && (
-              <>
-                Initiated at {initiated_chapter_name}
-                <br />
-              </>
-            )}
-            {affiliated_chapter_name && (
-              <>Affiliated with {affiliated_chapter_name}</>
-            )}
+            <>
+              {memberProfile?.chapters.map((chapter, idx) => (
+                <div key={`chapter-${idx}`}>
+                  {chapter.affiliation_type} with {chapter.chapter_name}
+                </div>
+              ))}
+            </>
           </Text>
         </Box>
 

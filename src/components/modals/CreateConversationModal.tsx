@@ -12,13 +12,13 @@ import {
   Checkbox,
   Box,
 } from "@twilio-paste/core";
-import { ConversationType } from "../../types";
+import { ConversationType, ChapterAffiliation } from "../../types";
 import { createConversation } from "../../api/conversation";
 
 interface CreateConversationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  adminChapters: string[];
+  adminChapters: ChapterAffiliation[];
   adminNational: boolean;
   onCreate?: (data: {
     type: ConversationType;
@@ -44,11 +44,29 @@ const CreateConversationModal: React.FC<CreateConversationModalProps> = ({
   const showChapterSelect = type === "chapter";
   const showTypeSelect = adminChapters.length > 0 || adminNational;
 
+  const resetForm = () => {
+    setType(ConversationType.PERSONAL);
+    setName("");
+    setIsReadOnly(false);
+    setChapterId(undefined);
+    setError(null);
+  };
+
   useEffect(() => {
     if (type === "personal") {
       setIsReadOnly(false);
     }
   }, [type]);
+
+  useEffect(() => {
+    if (type === "chapter") {
+      if (adminChapters.length === 1) {
+        setChapterId(adminChapters[0].chapter_id);
+      }
+    } else {
+      setChapterId(undefined);
+    }
+  }, [type, adminChapters]);
 
   const handleSubmit = async () => {
     setError(null);
@@ -64,16 +82,22 @@ const CreateConversationModal: React.FC<CreateConversationModalProps> = ({
       if (onCreate) {
         onCreate(conversationData);
       }
+      resetForm();
       onClose();
     } catch (err) {
       setError(err.message || "Failed to create conversation");
     }
   };
 
+  const handleDismiss = () => {
+    resetForm();
+    onClose();
+  };
+
   return (
     <Modal
       isOpen={isOpen}
-      onDismiss={onClose}
+      onDismiss={handleDismiss}
       ariaLabelledby="create-convo-modal"
       size="default"
     >
@@ -115,9 +139,9 @@ const CreateConversationModal: React.FC<CreateConversationModalProps> = ({
               <option value="" disabled>
                 -- Select Chapter --
               </option>
-              {adminChapters.map((id) => (
-                <option key={id} value={id}>
-                  Chapter {id}
+              {adminChapters.map((chapter) => (
+                <option key={chapter.chapter_id} value={chapter.chapter_id}>
+                  {chapter.chapter_name}
                 </option>
               ))}
             </Select>
@@ -155,10 +179,10 @@ const CreateConversationModal: React.FC<CreateConversationModalProps> = ({
         )}
       </ModalBody>
       <ModalFooter>
-        <Button variant="secondary" onClick={onClose}>
+        <Button variant="secondary" onClick={handleDismiss}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={handleSubmit}>
+        <Button variant="destructive" onClick={handleSubmit}>
           Create
         </Button>
       </ModalFooter>

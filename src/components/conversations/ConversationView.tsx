@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Text } from "@twilio-paste/core";
 import { useTheme } from "@twilio-paste/theme";
+import { Conversation } from "@twilio/conversations";
 
 import {
   MessageStatus,
@@ -18,7 +19,6 @@ import { getMessageStatus } from "../../api";
 
 import { getLastMessageTime } from "./../../utils/timestampUtils";
 
-import { ReduxConversation } from "../../store/reducers/convoReducer";
 import { ReduxParticipant } from "../../store/reducers/participantsReducer";
 
 interface SingleConvoProps {
@@ -28,7 +28,7 @@ interface SingleConvoProps {
   lastMessage: string;
   myMessage: ReduxMessage | false;
   unreadMessagesCount: number;
-  convo: ReduxConversation;
+  convo: Conversation;
   updateUnreadMessages: SetUnreadMessagesType;
   onClick: () => void;
   participants: ReduxParticipant[];

@@ -3,7 +3,8 @@ import { Box, Input, Button, Spinner } from "@twilio-paste/core";
 import { ChevronDoubleLeftIcon } from "@twilio-paste/icons/esm/ChevronDoubleLeftIcon";
 import { ChevronDoubleRightIcon } from "@twilio-paste/icons/esm/ChevronDoubleRightIcon";
 import { PlusIcon } from "@twilio-paste/icons/esm/PlusIcon";
-import ConversationsList from "./ConversationsList";
+import { Client } from "@twilio/conversations";
+import GroupedConversationsList from "./GroupedConversationsList";
 import CreateConversationModal from "../modals/CreateConversationModal";
 import styles from "../../styles";
 import { getTranslation } from "../../utils/localUtils";
@@ -11,11 +12,18 @@ import { useDispatch, useSelector } from "react-redux";
 import { filterConversations } from "../../store/action-creators";
 import { AppState } from "../../store";
 import { getMemberProfile } from "../../api/member";
+import { ChapterAffiliation } from "../../types";
 
-const ConversationsContainer: React.FC = () => {
+interface ConversationsContainerProps {
+  client?: Client;
+}
+
+const ConversationsContainer: React.FC<ConversationsContainerProps> = ({
+  client,
+}) => {
   const [listHidden, hideList] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [adminChapters, setAdminChapters] = useState<string[]>([]);
+  const [adminChapters, setAdminChapters] = useState<ChapterAffiliation[]>([]);
   const [adminNational, setAdminNational] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -75,7 +83,7 @@ const ConversationsContainer: React.FC = () => {
           {!listHidden ? createNewConvo : null}
         </Button>
 
-        <Box marginTop="space60">
+        <Box marginTop="space60" hidden>
           <Input
             aria-describedby="convo_string_search"
             id="convoString"
@@ -90,7 +98,12 @@ const ConversationsContainer: React.FC = () => {
       </Box>
 
       <Box style={styles.convoList}>
-        {!listHidden ? <ConversationsList /> : null}
+        {!listHidden && client ? (
+          <GroupedConversationsList
+            adminChapters={adminChapters}
+            client={client}
+          />
+        ) : null}
       </Box>
 
       <Box style={styles.collapseButtonBox}>

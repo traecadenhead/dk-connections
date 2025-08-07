@@ -15,8 +15,14 @@ const AutoLogin = () => {
   useEffect(() => {
     let isMounted = true;
 
-    const params = new URLSearchParams(window.location.search);
-    const queryToken = params.get("token");
+    const redirectToLegacyLogin = () => {
+      const returnUrl = `${window.location.origin}?token=[jwt]`;
+      const signinUrl = new URL("https://www.deltakappamft.org/SignIn");
+      signinUrl.searchParams.set("returnUrl", returnUrl);
+      if (isMounted) {
+        window.location.href = signinUrl.toString();
+      }
+    };
 
     const handleValidToken = async (token: string) => {
       try {
@@ -26,25 +32,21 @@ const AutoLogin = () => {
         localStorage.setItem("jwt", token);
         localStorage.setItem("member_id", userData.member_id);
         login(userData.twilio_token);
-        setLoading(false);
+
+        if (isMounted) setLoading(false);
       } catch (error) {
         console.error("Invalid or expired token:", error);
         localStorage.removeItem("jwt");
         localStorage.removeItem("member_id");
-        logout();
-
         if (isMounted) {
+          logout();
           redirectToLegacyLogin();
         }
       }
     };
 
-    const redirectToLegacyLogin = () => {
-      const returnUrl = `${window.location.origin}?token=[jwt]`;
-      const signinUrl = new URL("https://www.deltakappamft.org/SignIn");
-      signinUrl.searchParams.set("returnUrl", returnUrl);
-      window.location.href = signinUrl.toString();
-    };
+    const params = new URLSearchParams(window.location.search);
+    const queryToken = params.get("token");
 
     if (queryToken) {
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -53,10 +55,8 @@ const AutoLogin = () => {
       const sessionToken = localStorage.getItem("jwt");
       if (sessionToken) {
         handleValidToken(sessionToken);
-      } else {
-        if (isMounted) {
-          redirectToLegacyLogin();
-        }
+      } else if (isMounted) {
+        redirectToLegacyLogin();
       }
     }
 

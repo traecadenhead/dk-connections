@@ -58,19 +58,22 @@ export type ReactionsType = {
   [Reactions.LAUGH]?: string[];
 };
 
+export interface ChapterAffiliation {
+  chapter_id: string;
+  chapter_name: string;
+  affiliation_type: string;
+}
+
 export interface MemberProfileResponse {
   member_id: string;
   first_name: string;
   last_name: string;
-  initiated_chapter_id: string | null;
-  initiated_chapter_name: string | null;
-  affiliated_chapter_id: string | null;
-  affiliated_chapter_name: string | null;
   photo_url: string | null;
   bio: string | null;
   interests: string | null;
   is_connected: boolean;
-  admin_chapters: string[];
+  chapters: ChapterAffiliation[];
+  admin_chapters: ChapterAffiliation[];
   admin_national: boolean;
 }
 
@@ -83,8 +86,27 @@ export interface MemberConnectionResponse {
   profile?: MemberProfileResponse;
 }
 
+export interface MemberConversation {
+  id: number;
+  sid: string;
+  type: ConversationType;
+  name: string;
+  chapter_id: string | null;
+  is_read_only: boolean;
+  created_by: string;
+  created_at: string; // ISO datetime string
+  updated_at: string; // ISO datetime string
+}
+
 export enum ConversationType {
   PERSONAL = "personal",
   CHAPTER = "chapter",
   NATIONAL = "national",
+}
+
+export interface MinimalConversation {
+  sid: string;
+  name: string;
+  type: ConversationType;
+  chapterId?: string;
 }
