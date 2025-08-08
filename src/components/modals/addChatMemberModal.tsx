@@ -1,3 +1,4 @@
+// src/components/modals/addChatMemberModal.tsx
 import React, { useEffect, useState, RefObject } from "react";
 import {
   ModalBody,
@@ -5,6 +6,7 @@ import {
   Select,
   Option,
   FormControl,
+  Checkbox, // NEW
 } from "@twilio-paste/core";
 import { MemberConnectionResponse } from "../../types";
 import AddParticipantFooter from "./addParticipantFooter";
@@ -13,15 +15,16 @@ import ConvoModal from "./ConvoModal";
 import { AppState } from "../../store";
 import { getTranslation } from "./../../utils/localUtils";
 import { useSelector } from "react-redux";
-import { getMemberConnections } from "../../api/connection"; // Adjust if your function lives elsewhere
+import { getMemberConnections } from "../../api/connection";
 
 interface AddChatParticipantModalProps {
   name: string;
   setName: (name: string) => void;
   error: string;
-  nameInputRef: RefObject<HTMLInputElement>; // Not used anymore but kept for interface compatibility
+  nameInputRef: RefObject<HTMLInputElement>;
   onBack: () => void;
-  action: () => void;
+  /** changed: now passes whether the new participant should be admin */
+  action: (isAdmin: boolean) => void;
   handleClose: () => void;
   isModalOpen: boolean;
   title: string;
@@ -29,7 +32,7 @@ interface AddChatParticipantModalProps {
 }
 
 const AddChatParticipantModal: React.FC<AddChatParticipantModalProps> = (
-  props: AddChatParticipantModalProps
+  props
 ) => {
   const local = useSelector((state: AppState) => state.local);
   const addChatParticipant = getTranslation(local, "addChatParticipant");
@@ -38,6 +41,8 @@ const AddChatParticipantModal: React.FC<AddChatParticipantModalProps> = (
     MemberConnectionResponse[]
   >([]);
 
+  const [isAdmin, setIsAdmin] = useState(false); // NEW
+
   const memberId = localStorage.getItem("member_id");
 
   useEffect(() => {
@@ -45,7 +50,6 @@ const AddChatParticipantModal: React.FC<AddChatParticipantModalProps> = (
       if (!memberId) return;
       try {
         const result = await getMemberConnections(memberId);
-        // Filter out members who are already chat participants
         const filtered = result.filter(
           (conn) => !props.participantIds.includes(conn.connected_member_id)
         );
@@ -72,7 +76,7 @@ const AddChatParticipantModal: React.FC<AddChatParticipantModalProps> = (
               if (e.key === "Enter") {
                 if (props.action) {
                   e.preventDefault();
-                  props.action();
+                  props.action(isAdmin); // pass admin flag
                 }
               }
             }}
@@ -96,6 +100,16 @@ const AddChatParticipantModal: React.FC<AddChatParticipantModalProps> = (
                 ))}
               </Select>
             </FormControl>
+
+            <Box marginTop="space60">
+              <Checkbox
+                id="make-admin"
+                checked={isAdmin}
+                onChange={() => setIsAdmin((prev) => !prev)}
+              >
+                Make this participant an admin of this conversation
+              </Checkbox>
+            </Box>
           </Box>
         </ModalBody>
       }
@@ -104,7 +118,7 @@ const AddChatParticipantModal: React.FC<AddChatParticipantModalProps> = (
           isSaveDisabled={!props.name.trim() || !!props.error}
           actionName={ActionName.Add}
           onBack={props.onBack}
-          action={props.action}
+          action={() => props.action(isAdmin)} // pass admin flag
         />
       }
     />

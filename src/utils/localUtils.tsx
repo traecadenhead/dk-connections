@@ -59,7 +59,7 @@ export const translations: Translations = {
     clockHelper: "format for timestamps",
     muteConvo: "Mute Conversation",
     unmuteConvo: "Unmute Conversation",
-    manageParticipants: "Manage Participants",
+    manageParticipants: "Conversation Participants",
     participants: "Participants",
     addParticipant: "Add Participant",
     smsParticipant: "SMS Participant",

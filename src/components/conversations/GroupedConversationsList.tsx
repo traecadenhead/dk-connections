@@ -150,17 +150,20 @@ const GroupedConversationsList: React.FC<GroupedConversationsListProps> = ({
   };
 
   useEffect(() => {
+    // already defined somewhere above:
+    // const loadConversations = async () => { ... }
+
     loadConversations();
 
-    const handleConversationAdded = () => {
-      console.info("Conversation added – reloading list");
-      loadConversations();
-    };
+    const onAdded = () => loadConversations();
+    const onRemoved = () => loadConversations();
 
-    client.on("conversationAdded", handleConversationAdded);
+    client.on("conversationAdded", onAdded);
+    client.on("conversationRemoved", onRemoved);
 
     return () => {
-      client.off("conversationAdded", handleConversationAdded);
+      client.off("conversationAdded", onAdded);
+      client.off("conversationRemoved", onRemoved);
     };
   }, [client, adminChapters]);
 

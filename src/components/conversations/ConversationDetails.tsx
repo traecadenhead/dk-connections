@@ -13,6 +13,8 @@ interface ConversationDetailsProps {
   participants: ReduxParticipant[];
   convo: ReduxConversation;
   updateConvoName?: (title: string) => void;
+  isAdmin: boolean;
+  adminIds: string[];
 }
 
 const ConversationDetails: React.FC<ConversationDetailsProps> = (
@@ -130,6 +132,8 @@ const ConversationDetails: React.FC<ConversationDetailsProps> = (
             participants={props.participants}
             isManageParticipantOpen={isManageParticipantOpen}
             setIsManageParticipantOpen={setIsManageParticipantOpen}
+            isAdmin={props.isAdmin}
+            adminIds={props.adminIds}
           />
         </Box>
       </Box>

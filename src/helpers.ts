@@ -77,3 +77,10 @@ export const handlePromiseRejection = async (
     throw e;
   }
 };
+
+export const extractErrorBody = (err: unknown) => {
+  if (err && typeof err === "object" && "body" in err) {
+    return (err as { body?: { message: string; code: number } }).body;
+  }
+  return undefined;
+};

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+// src/components/modals/manageParticipantsModal.tsx
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Anchor,
   Box,
@@ -33,11 +34,26 @@ interface ManageParticipantsModalProps {
   onClick: (content: Content) => void;
   participantsList: ReduxParticipant[];
   onParticipantRemove: (participant: ReduxParticipant) => void;
+  isAdmin: boolean;
+  /** NEW: list of admin member IDs for this conversation */
+  adminIds?: string[];
 }
 
 const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
   props
 ) => {
+  const {
+    participantsCount,
+    handleClose,
+    isModalOpen,
+    title,
+    onClick,
+    participantsList,
+    onParticipantRemove,
+    isAdmin = false,
+    adminIds = [], // NEW
+  } = props;
+
   const local = useSelector((state: AppState) => state.local);
 
   const participants = getTranslation(local, "participants");
@@ -52,8 +68,11 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
     useState<MemberProfileResponse | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
+  // Fast membership checks
+  const adminIdSet = useMemo(() => new Set(adminIds), [adminIds]); // NEW
+
   useEffect(() => {
-    const identities = props.participantsList
+    const identities = participantsList
       .map((p) => p.identity)
       .filter((id): id is string => typeof id === "string");
 
@@ -67,18 +86,27 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
       }, {} as Record<string, MemberProfileResponse>);
       setParticipantProfiles(profileMap);
     });
-  }, [props.participantsList]);
+  }, [participantsList]);
 
   const getDisplayName = (participant: ReduxParticipant): string => {
     const identity = participant.identity;
     if (!identity) return "unknown";
 
     const profile = participantProfiles[identity];
-    if (profile?.first_name || profile?.last_name) {
-      return `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim();
-    }
+    const base =
+      profile?.first_name || profile?.last_name
+        ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim()
+        : identity;
+    return base;
+  };
 
-    return identity;
+  const showAdmin = (participant: ReduxParticipant): string => {
+    const identity = participant.identity;
+    if (!identity) return "";
+
+    const profile = participantProfiles[identity];
+    const memberId = profile?.member_id ?? identity;
+    return adminIdSet.has(memberId) ? " (Admin)" : "";
   };
 
   const updateConnected = (memberId: string, connected: boolean) => {
@@ -90,7 +118,6 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
       },
     }));
 
-    // Also update selectedProfile if it's currently open and matches
     if (selectedProfile?.member_id === memberId) {
       setSelectedProfile({
         ...selectedProfile,
@@ -99,12 +126,20 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
     }
   };
 
+  const handleRemove = (user: ReduxParticipant) => {
+    if (!isAdmin) return;
+    onParticipantRemove(user);
+  };
+
+  const isCurrentUser = (user: ReduxParticipant) =>
+    user.identity === localStorage.getItem("username");
+
   return (
     <>
       <ConvoModal
-        handleClose={props.handleClose}
-        isModalOpen={props.isModalOpen}
-        title={props.title}
+        handleClose={handleClose}
+        isModalOpen={isModalOpen}
+        title={title}
         modalBody={
           <ModalBody>
             <Box
@@ -122,14 +157,17 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
                 fontSize="fontSize30"
                 lineHeight="lineHeight60"
               >
-                {participants} ({props.participantsCount})
+                {participants} ({participantsCount})
               </Box>
-              <Button
-                variant="destructive"
-                onClick={() => props.onClick(Content.AddChat)}
-              >
-                {addParticipant}
-              </Button>
+
+              {isAdmin && (
+                <Button
+                  variant="destructive"
+                  onClick={() => onClick(Content.AddChat)}
+                >
+                  {addParticipant}
+                </Button>
+              )}
             </Box>
 
             <Box
@@ -141,7 +179,7 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
               }}
             >
               <Table>
-                <THead hidden={true}>
+                <THead hidden>
                   <Tr>
                     <Th width="size10" />
                     <Th width="size40" textAlign="left" />
@@ -149,11 +187,11 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
                   </Tr>
                 </THead>
                 <TBody>
-                  {props.participantsList.length ? (
-                    props.participantsList.map((user) => {
+                  {participantsList.length ? (
+                    participantsList.map((user) => {
                       const displayName = getDisplayName(user);
-                      const isCurrentUser =
-                        user.identity === localStorage.getItem("username");
+                      const adminStr = showAdmin(user);
+                      const isSelf = isCurrentUser(user);
 
                       return (
                         <Tr key={user.sid}>
@@ -174,14 +212,14 @@ const ManageParticipantsModal: React.FC<ManageParticipantsModalProps> = (
                                 }
                               }}
                             >
-                              {displayName}
+                              {displayName} {adminStr}
                             </Anchor>
                           </Td>
                           <Td textAlign="right">
-                            {!isCurrentUser ? (
+                            {isAdmin && !isSelf ? (
                               <Anchor
                                 href="#"
-                                onClick={() => props.onParticipantRemove(user)}
+                                onClick={() => handleRemove(user)}
                               >
                                 {remove}
                               </Anchor>

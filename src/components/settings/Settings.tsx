@@ -7,25 +7,20 @@ import { Client } from "@twilio/conversations";
 import SettingsMenu from "./SettingsMenu";
 import ManageParticipantsModal from "../modals/manageParticipantsModal";
 import { Content } from "../../types";
+import { removeParticipant } from "../../api";
 import {
-  addChatParticipant,
-  addNonChatParticipant,
-  removeParticipant,
-} from "../../api";
+  addConversationParticipant,
+  addConversationAdmin,
+} from "../../api/conversation";
+
 import AddChatParticipantModal from "../modals/addChatMemberModal";
-import AddSMSParticipantModal from "../modals/addSMSParticipantModal";
-import AddWhatsAppParticipantModal from "../modals/addWhatsAppParticipant";
 import { actionCreators } from "../../store";
 import ActionErrorModal from "../modals/ActionErrorModal";
-import {
-  CONVERSATION_MESSAGES,
-  ERROR_MODAL_MESSAGES,
-  SMS_PREFIX,
-  WHATSAPP_PREFIX,
-} from "../../constants";
+import { CONVERSATION_MESSAGES, ERROR_MODAL_MESSAGES } from "../../constants";
 import {
   successNotification,
   unexpectedErrorNotification,
+  extractErrorBody,
 } from "../../helpers";
 import { ReduxConversation } from "../../store/reducers/convoReducer";
 import {
@@ -33,7 +28,6 @@ import {
   getSdkParticipantObject,
 } from "../../conversations-objects";
 import { ReduxParticipant } from "../../store/reducers/participantsReducer";
-import { isValidPhoneNumber } from "libphonenumber-js";
 import { AppState } from "../../store";
 import { getTranslation } from "./../../utils/localUtils";
 
@@ -43,9 +37,10 @@ interface SettingsProps {
   convo: ReduxConversation;
   isManageParticipantOpen: boolean;
   setIsManageParticipantOpen: (open: boolean) => void;
+  isAdmin: boolean;
+  adminIds: string[];
 }
 
-const invalidPhoneNumberErrorMessage = "Invalid phone number";
 const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
   const handleParticipantClose = () => props.setIsManageParticipantOpen(false);
 
@@ -55,22 +50,11 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
   const handleChatOpen = () => setIsAddChatOpen(true);
   const handleChatClose = () => setIsAddChatOpen(false);
 
-  const [isAddSMSOpen, setIsAddSMSOpen] = useState(false);
-  const handleSMSOpen = () => setIsAddSMSOpen(true);
-  const handleSMSClose = () => setIsAddSMSOpen(false);
-
-  const [isAddWhatsAppOpen, setIsAddWhatsAppOpen] = useState(false);
-  const handleWhatsAppOpen = () => setIsAddWhatsAppOpen(true);
-  const handleWhatsAppClose = () => setIsAddWhatsAppOpen(false);
-
   const local = useSelector((state: AppState) => state.local);
   const manageParticipants = getTranslation(local, "manageParticipants");
 
   const [name, setName] = useState("");
   const [error, setError] = useState("");
-
-  const [nameProxy, setNameProxy] = useState("");
-  const [errorProxy, setErrorProxy] = useState("");
 
   const [showError, setErrorToShow] = useState<
     | {
@@ -102,14 +86,11 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
 
   function emptyData() {
     setName("");
-    setNameProxy("");
     setError("");
-    setErrorProxy("");
   }
 
   function setErrors(errorText: string) {
     setError(errorText);
-    setErrorProxy(errorText);
   }
 
   return (
@@ -150,12 +131,6 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
           onClick={(content: Content) => {
             handleParticipantClose();
             switch (content) {
-              case Content.AddSMS:
-                handleSMSOpen();
-                return null;
-              case Content.AddWhatsApp:
-                handleWhatsAppOpen();
-                return null;
               case Content.AddChat:
                 handleChatOpen();
                 return null;
@@ -170,108 +145,8 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
               addNotifications
             );
           }}
-        />
-      )}
-      {isAddSMSOpen && (
-        <AddSMSParticipantModal
-          name={name}
-          proxyName={nameProxy}
-          isModalOpen={isAddSMSOpen}
-          title={manageParticipants}
-          setName={(name: string) => {
-            setName(name);
-            setError(
-              !isValidPhoneNumber(`+${name}`)
-                ? invalidPhoneNumberErrorMessage
-                : ""
-            );
-          }}
-          setProxyName={(name: string) => {
-            setNameProxy(name);
-            setErrorProxy(
-              !isValidPhoneNumber(`+${name}`)
-                ? invalidPhoneNumberErrorMessage
-                : ""
-            );
-          }}
-          error={error}
-          errorProxy={errorProxy}
-          nameInputRef={nameInputRef}
-          handleClose={() => {
-            emptyData();
-            handleSMSClose();
-          }}
-          onBack={() => {
-            emptyData();
-            handleSMSClose();
-            props.setIsManageParticipantOpen(true);
-          }}
-          action={async () => {
-            try {
-              await addNonChatParticipant(
-                SMS_PREFIX + name,
-                SMS_PREFIX + nameProxy,
-                sdkConvo,
-                addNotifications
-              );
-              emptyData();
-              handleSMSClose();
-            } catch (e) {
-              setErrorData(e.body);
-              setErrorToShow(ERROR_MODAL_MESSAGES.ADD_PARTICIPANT);
-            }
-          }}
-        />
-      )}
-      {isAddWhatsAppOpen && (
-        <AddWhatsAppParticipantModal
-          name={name}
-          proxyName={nameProxy}
-          isModalOpen={isAddWhatsAppOpen}
-          title={manageParticipants}
-          setName={(name: string) => {
-            setName(name);
-            setError(
-              !isValidPhoneNumber(`+${name}`)
-                ? invalidPhoneNumberErrorMessage
-                : ""
-            );
-          }}
-          setProxyName={(name: string) => {
-            setNameProxy(name);
-            setErrorProxy(
-              !isValidPhoneNumber(`+${name}`)
-                ? invalidPhoneNumberErrorMessage
-                : ""
-            );
-          }}
-          error={error}
-          errorProxy={errorProxy}
-          nameInputRef={nameInputRef}
-          handleClose={() => {
-            emptyData();
-            handleWhatsAppClose();
-          }}
-          onBack={() => {
-            emptyData();
-            handleWhatsAppClose();
-            props.setIsManageParticipantOpen(true);
-          }}
-          action={async () => {
-            try {
-              await addNonChatParticipant(
-                WHATSAPP_PREFIX + name,
-                WHATSAPP_PREFIX + nameProxy,
-                sdkConvo,
-                addNotifications
-              );
-              emptyData();
-              handleWhatsAppClose();
-            } catch (e) {
-              setErrorData(e.body);
-              setErrorToShow(ERROR_MODAL_MESSAGES.ADD_PARTICIPANT);
-            }
-          }}
+          isAdmin={props.isAdmin}
+          adminIds={props.adminIds}
         />
       )}
       {isAddChatOpen && (
@@ -279,8 +154,8 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
           name={name}
           isModalOpen={isAddChatOpen}
           title={manageParticipants}
-          setName={(name: string) => {
-            setName(name);
+          setName={(v: string) => {
+            setName(v);
             setErrors("");
           }}
           error={error}
@@ -294,19 +169,36 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
             handleChatClose();
             props.setIsManageParticipantOpen(true);
           }}
-          action={async () => {
+          action={async (makeAdmin: boolean) => {
             try {
-              await addChatParticipant(name.trim(), sdkConvo, addNotifications);
+              const conversationSid = props.convo.sid;
+              const memberIdToAdd = name.trim();
+
+              if (!memberIdToAdd) return;
+
+              if (makeAdmin) {
+                await addConversationAdmin(conversationSid, memberIdToAdd);
+              } else {
+                await addConversationParticipant(
+                  conversationSid,
+                  memberIdToAdd
+                );
+              }
+
               emptyData();
               handleChatClose();
-            } catch (e) {
-              setErrorData(e.body);
+
+              // Reopen manage participants so the user sees the update
+              props.setIsManageParticipantOpen(true);
+            } catch (e: unknown) {
+              setErrorData(extractErrorBody(e));
               setErrorToShow(ERROR_MODAL_MESSAGES.ADD_PARTICIPANT);
             }
           }}
           participantIds={props.participants.map((p) => p.identity || "")}
         />
       )}
+
       {/* {isLoading ? (
         <Box
           display="flex"

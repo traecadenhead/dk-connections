@@ -105,3 +105,47 @@ export async function addConversationParticipant(
     throw new Error(err.detail || "Failed to add participant to conversation");
   }
 }
+
+export async function removeConversationParticipant(
+  conversationSid: string,
+  memberId: string
+): Promise<void> {
+  const response = await fetch(
+    `${process.env.REACT_APP_API_URL}/conversations/${conversationSid}/participants/${memberId}`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(
+      err.detail || "Failed to remove participant from conversation"
+    );
+  }
+}
+
+export async function addConversationAdmin(
+  conversationSid: string,
+  memberId: string
+): Promise<void> {
+  const response = await fetch(
+    `${process.env.REACT_APP_API_URL}/conversations/${conversationSid}/admins/${memberId}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to add admin to conversation");
+  }
+}

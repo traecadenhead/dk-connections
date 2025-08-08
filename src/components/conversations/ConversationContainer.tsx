@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { bindActionCreators } from "redux";
 import { Box } from "@twilio-paste/core";
 import { useTheme } from "@twilio-paste/theme";
+import { Client } from "@twilio/conversations";
 
 import { AppState, actionCreators } from "../../store";
 import ConversationDetails from "./ConversationDetails";
@@ -17,11 +18,37 @@ import { successNotification } from "../../helpers";
 import { CONVERSATION_MESSAGES, ERROR_MODAL_MESSAGES } from "../../constants";
 import { getConversationBySid } from "../../api/conversation";
 import { ReduxConversation } from "../../store/reducers/convoReducer";
-import { MemberConversation, ConversationAdmin } from "../../types";
+import { MemberConversation } from "../../types";
 
 interface ConvoContainerProps {
   conversation?: ReduxConversation;
-  client?: any;
+  client?: Client;
+}
+
+// Exact shape expected by ActionErrorModal
+type ModalError = { code: number; message: string } | undefined;
+
+function extractErrorBody(err: unknown): ModalError {
+  // If API threw an object with a `body`
+  if (err && typeof err === "object" && "body" in err) {
+    const body = (err as { body?: { message?: unknown; code?: unknown } }).body;
+    const message =
+      typeof body?.message === "string" ? body.message : "Unexpected error";
+    const code = typeof body?.code === "number" ? body.code : -1;
+    return { code, message };
+  }
+
+  // Plain Error instance
+  if (err instanceof Error) {
+    return { code: -1, message: err.message || "Unexpected error" };
+  }
+
+  // String or anything else
+  if (typeof err === "string") {
+    return { code: -1, message: err };
+  }
+
+  return undefined;
 }
 
 const ConversationContainer: React.FC<ConvoContainerProps> = ({
@@ -30,7 +57,7 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
 }) => {
   const theme = useTheme();
   const sid = useSelector((state: AppState) => state.sid);
-  const memberId = localStorage.getItem("member_id");
+  const memberId = localStorage.getItem("member_id") ?? "";
   const local = useSelector((state: AppState) => state.local);
   const messages = useSelector((state: AppState) => state.messages);
   const loadingStatus = useSelector((state: AppState) => state.loadingStatus);
@@ -51,7 +78,8 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
     description: string;
   } | null>(null);
 
-  const [errorData, setErrorData] = useState<any>();
+  // ✅ no `any`
+  const [errorData, setErrorData] = useState<ModalError>(undefined);
 
   const dispatch = useDispatch();
   const { pushMessages, updateConversation, addNotifications } =
@@ -61,28 +89,28 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
     if (conversation) {
       return getSdkConversationObject(conversation);
     }
+    return undefined;
   }, [conversation?.sid]);
 
-  const isAdmin = (fullConversation?.admins ?? []).some(
-    (admin) => admin.member_id === memberId
-  );
-
+  // Admins list + flag
+  const adminIds = (fullConversation?.admins ?? []).map((a) => a.member_id);
+  const isAdmin = adminIds.includes(memberId);
   const isReadOnly = fullConversation?.is_read_only;
 
   useEffect(() => {
-    if (sid) {
-      getConversationBySid(sid)
-        .then(setFullConversation)
-        .catch((e) => {
-          console.error("Failed to fetch conversation:", e);
-        });
-    }
+    if (!sid) return;
+    getConversationBySid(sid)
+      .then(setFullConversation)
+      .catch((e: unknown) => {
+        // optional: surface via modal
+        setErrorData(extractErrorBody(e));
+        setErrorToShow(ERROR_MODAL_MESSAGES.CHANGE_CONVERSATION_NAME);
+        // still log for dev
+        console.error("Failed to fetch conversation:", e);
+      });
   }, [sid]);
 
-  const handleDroppedFiles = (files: File[]) => {
-    setDroppedFiles(files);
-  };
-
+  const handleDroppedFiles = (files: File[]) => setDroppedFiles(files);
   const greeting = getTranslation(local, "greeting");
 
   return (
@@ -115,8 +143,8 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
                           addNotifications,
                         });
                       })
-                      .catch((e) => {
-                        setErrorData(e);
+                      .catch((e: unknown) => {
+                        setErrorData(extractErrorBody(e));
                         setErrorToShow(
                           ERROR_MODAL_MESSAGES.CHANGE_CONVERSATION_NAME
                         );
@@ -124,6 +152,8 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
                   }
                 : undefined
             }
+            isAdmin={isAdmin}
+            adminIds={adminIds}
           />
 
           <MessagesBox
