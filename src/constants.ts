@@ -7,12 +7,18 @@ export const NOTIFICATION_TIMEOUT = 4000;
 export const ERROR_MODAL_MESSAGES = {
   ADD_PARTICIPANT: {
     title: "Unable to add participant",
-    description: "There is an error while adding participant to conversation",
+    description:
+      "There was an error while adding the participant to conversation",
   },
   CHANGE_CONVERSATION_NAME: {
     title: "Unable to save Conversation name",
     description:
       "Only creators of the Conversation can edit the Conversation name.",
+  },
+  REMOVE_PARTICIPANT: {
+    title: "Unable to remove participant",
+    description:
+      "There was an error while removing the participant from the conversation",
   },
 };
 export const CONVERSATION_MESSAGES = {
@@ -23,6 +29,7 @@ export const CONVERSATION_MESSAGES = {
   MESSAGE_DELETE_FAILED: "Failed to delete message. Error: ",
   MESSAGE_EDITED: "Message edited.",
   MESSAGE_EDIT_FAILED: "Failed to edit message. Error: ",
+  PARTICIPANT_REMOVED: "The participant was removed from the conversation.",
 };
 
 export const PARTICIPANT_MESSAGES = {

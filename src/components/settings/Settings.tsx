@@ -7,26 +7,20 @@ import { Client } from "@twilio/conversations";
 import SettingsMenu from "./SettingsMenu";
 import ManageParticipantsModal from "../modals/manageParticipantsModal";
 import { Content } from "../../types";
-import { removeParticipant } from "../../api";
 import {
   addConversationParticipant,
   addConversationAdmin,
+  removeConversationParticipant,
+  removeConversation,
 } from "../../api/conversation";
 
 import AddChatParticipantModal from "../modals/addChatMemberModal";
 import { actionCreators } from "../../store";
 import ActionErrorModal from "../modals/ActionErrorModal";
 import { CONVERSATION_MESSAGES, ERROR_MODAL_MESSAGES } from "../../constants";
-import {
-  successNotification,
-  unexpectedErrorNotification,
-  extractErrorBody,
-} from "../../helpers";
+import { successNotification, extractErrorBody } from "../../helpers";
 import { ReduxConversation } from "../../store/reducers/convoReducer";
-import {
-  getSdkConversationObject,
-  getSdkParticipantObject,
-} from "../../conversations-objects";
+import { getSdkConversationObject } from "../../conversations-objects"; // still used for leave()
 import { ReduxParticipant } from "../../store/reducers/participantsReducer";
 import { AppState } from "../../store";
 import { getTranslation } from "./../../utils/localUtils";
@@ -45,8 +39,6 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
   const handleParticipantClose = () => props.setIsManageParticipantOpen(false);
 
   const [isAddChatOpen, setIsAddChatOpen] = useState(false);
-  // TODO: move to app loading state
-  // const [isLoading, setLoading] = useState(false);
   const handleChatOpen = () => setIsAddChatOpen(true);
   const handleChatClose = () => setIsAddChatOpen(false);
 
@@ -105,12 +97,22 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
               addNotifications,
             });
             updateCurrentConversation("");
-          } catch (e) {
-            unexpectedErrorNotification(e.message, addNotifications);
+          } catch (e: unknown) {
+            setErrorData(extractErrorBody(e));
           }
         }}
         conversation={props.convo}
         addNotifications={addNotifications}
+        isAdmin={props.isAdmin}
+        onDeleteConversation={async () => {
+          // call your API delete endpoint here with props.convo.sid
+          await removeConversation(props.convo.sid); // <- your API fn
+          successNotification({
+            message: "Conversation deleted",
+            addNotifications,
+          });
+          updateCurrentConversation(""); // take user back to greeting
+        }}
       />
       <ActionErrorModal
         errorText={showError || ERROR_MODAL_MESSAGES.CHANGE_CONVERSATION_NAME}
@@ -139,11 +141,31 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
             }
           }}
           onParticipantRemove={async (participant) => {
-            await removeParticipant(
-              sdkConvo,
-              getSdkParticipantObject(participant),
-              addNotifications
-            );
+            // Use API instead of Twilio SDK
+            const memberId = participant.identity ?? "";
+            if (!memberId) return;
+
+            try {
+              await removeConversationParticipant(props.convo.sid, memberId);
+
+              successNotification({
+                message: CONVERSATION_MESSAGES.PARTICIPANT_REMOVED,
+                addNotifications,
+              });
+
+              // If you removed yourself, clear current convo
+              const myId = localStorage.getItem("member_id");
+              if (memberId === myId) {
+                updateCurrentConversation("");
+              }
+              // Otherwise, the Twilio SDK should emit participantRemoved and your
+              // listeners should update Redux participants. If not, you can trigger
+              // a manual refresh here.
+            } catch (e: unknown) {
+              setErrorData(extractErrorBody(e));
+              // If you don't have this constant, swap for a generic one you do have
+              setErrorToShow(ERROR_MODAL_MESSAGES.REMOVE_PARTICIPANT);
+            }
           }}
           isAdmin={props.isAdmin}
           adminIds={props.adminIds}
@@ -198,19 +220,6 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
           participantIds={props.participants.map((p) => p.identity || "")}
         />
       )}
-
-      {/* {isLoading ? (
-        <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          position="absolute"
-          height="100%"
-          width="100%"
-        >
-          <Spinner size="sizeIcon110" decorative={false} title="Loading" />
-        </Box>
-      ) : null} */}
     </>
   );
 };

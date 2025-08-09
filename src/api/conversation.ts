@@ -25,6 +25,26 @@ export async function createConversation(data: {
   }
 }
 
+export async function removeConversation(
+  conversationSid: string
+): Promise<void> {
+  const response = await fetch(
+    `${process.env.REACT_APP_API_URL}/conversations/${conversationSid}`,
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to delete conversation");
+  }
+}
+
 export async function getChapterConversations(
   chapterId: string
 ): Promise<MemberConversation[]> {

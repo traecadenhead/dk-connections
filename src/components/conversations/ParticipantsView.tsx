@@ -26,6 +26,8 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = ({
   onParticipantListOpen,
   maxDisplayedParticipants = DEFAULT_MAX_DISPLAYED_PARTICIPANTS,
 }) => {
+  const theme = useTheme(); // <-- moved ABOVE any conditional return
+
   const local = useSelector((state: AppState) => state.local);
   const addParticipants = getTranslation(local, "addParticipants");
   const otherParticipants = getTranslation(local, "otherParticipants");
@@ -36,6 +38,8 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = ({
   >({});
 
   useEffect(() => {
+    let cancelled = false;
+
     const identities = participants
       .map((p) => p.identity)
       .filter((id): id is string => typeof id === "string");
@@ -44,12 +48,17 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = ({
     if (uniqueIdentities.length === 0) return;
 
     getMemberProfileBatch(uniqueIdentities).then((profiles) => {
+      if (cancelled) return;
       const profileMap = profiles.reduce((acc, profile) => {
         acc[profile.member_id] = profile;
         return acc;
       }, {} as Record<string, MemberProfileResponse>);
       setParticipantProfiles(profileMap);
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [participants]);
 
   const getName = (participant: ReduxParticipant): string => {
@@ -74,8 +83,6 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = ({
       </Box>
     );
   }
-
-  const theme = useTheme();
 
   const displayedParticipants: string[] = [];
   const hiddenParticipants: string[] = [];
@@ -109,10 +116,7 @@ const ParticipantsView: React.FC<ParticipantsViewProps> = ({
         <AvatarGroup names={displayedParticipants} />
       </Button>
       {hiddenParticipants.length > 0 ? (
-        <Tooltip
-          text={hiddenParticipants.join(", ")}
-          placement={"bottom-start"}
-        >
+        <Tooltip text={hiddenParticipants.join(", ")} placement="bottom-start">
           <span
             style={{
               verticalAlign: "top",

@@ -46,21 +46,38 @@ const AddChatParticipantModal: React.FC<AddChatParticipantModalProps> = (
   const memberId = localStorage.getItem("member_id");
 
   useEffect(() => {
-    const fetchConnections = async () => {
-      if (!memberId) return;
+    let cancelled = false;
+
+    // Only fetch when the modal is actually open
+    if (!props.isModalOpen || !memberId) {
+      return;
+    }
+
+    // optional: reset before loading to avoid stale items flashing
+    setConnectedMembers([]);
+
+    (async () => {
       try {
         const result = await getMemberConnections(memberId);
+        if (cancelled) return;
+
         const filtered = result.filter(
           (conn) => !props.participantIds.includes(conn.connected_member_id)
         );
         setConnectedMembers(filtered);
       } catch (err) {
-        console.error("Failed to fetch connected members:", err);
+        if (!cancelled) {
+          // you can log if you want, just don't set state if cancelled
+          // console.error("Failed to fetch connected members:", err);
+        }
       }
-    };
+    })();
 
-    fetchConnections();
-  }, [memberId, props.participantIds]);
+    return () => {
+      cancelled = true;
+    };
+    // include isModalOpen so we don’t update after close
+  }, [memberId, props.participantIds, props.isModalOpen]);
 
   return (
     <ConvoModal

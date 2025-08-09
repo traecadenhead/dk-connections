@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Box } from "@twilio-paste/core";
+import { Box, Text } from "@twilio-paste/core";
 import {
   MenuButton,
   Menu,
@@ -15,9 +15,9 @@ import {
 import { MoreIcon } from "@twilio-paste/icons/esm/MoreIcon";
 import { UserIcon } from "@twilio-paste/icons/esm/UserIcon";
 import { ArrowBackIcon } from "@twilio-paste/icons/esm/ArrowBackIcon";
-import { Text } from "@twilio-paste/text";
-import { NotificationLevel } from "@twilio/conversations";
+import { DeleteIcon } from "@twilio-paste/icons/esm/DeleteIcon"; // new
 
+import { NotificationLevel } from "@twilio/conversations";
 import { NotificationsType } from "../../store/reducers/notificationsReducer";
 import { NOTIFICATION_LEVEL } from "../../constants";
 import Bell from "../icons/Bell";
@@ -34,19 +34,24 @@ interface SettingsMenuProps {
   conversation: ReduxConversation;
   onParticipantListOpen: () => void;
   addNotifications: (messages: NotificationsType) => void;
+
+  // NEW:
+  isAdmin: boolean;
+  onDeleteConversation: () => void | Promise<void>;
 }
 
-const SettingsMenu: React.FC<SettingsMenuProps> = (
-  props: SettingsMenuProps
-) => {
+const SettingsMenu: React.FC<SettingsMenuProps> = (props) => {
   const menu = useMenuState();
   const { notificationLevel } = props.conversation;
   const local = useSelector((state: AppState) => state.local);
+
   const manageParticipants = getTranslation(local, "manageParticipants");
   const leaveConvo = getTranslation(local, "leaveConvo");
   const muteConvo = getTranslation(local, "muteConvo");
   const unmuteConvo = getTranslation(local, "unmuteConvo");
+
   const muted = notificationLevel === NOTIFICATION_LEVEL.MUTED;
+
   const sdkConvo = useMemo(
     () => getSdkConversationObject(props.conversation),
     [props.conversation.sid]
@@ -58,6 +63,23 @@ const SettingsMenu: React.FC<SettingsMenuProps> = (
         ? (NOTIFICATION_LEVEL.DEFAULT as NotificationLevel)
         : (NOTIFICATION_LEVEL.MUTED as NotificationLevel)
     );
+  };
+
+  const confirmAndDelete = async () => {
+    // Guard (just in case)
+    if (!props.isAdmin) return;
+
+    const ok = window.confirm(
+      "This will permanently delete the conversation for all participants. Continue?"
+    );
+    if (!ok) return;
+
+    try {
+      await props.onDeleteConversation();
+    } finally {
+      // close the menu after action
+      menu.hide();
+    }
   };
 
   return (
@@ -74,31 +96,58 @@ const SettingsMenu: React.FC<SettingsMenuProps> = (
             <MediaBody>{muted ? unmuteConvo : muteConvo}</MediaBody>
           </MediaObject>
         </MenuItem>
+
         <MenuItem {...menu} onClick={props.onParticipantListOpen}>
           <MediaObject verticalAlign="center">
             <MediaFigure spacing="space20">
               <UserIcon
                 decorative={false}
-                title="information"
+                title="Participants"
                 color="colorTextIcon"
               />
             </MediaFigure>
             <MediaBody>{manageParticipants}</MediaBody>
           </MediaObject>
         </MenuItem>
+
         <MenuSeparator {...menu} />
+
+        {/* Admin-only: Delete conversation */}
+        {props.isAdmin && (
+          <MenuItem {...menu} onClick={confirmAndDelete}>
+            <MediaObject verticalAlign="center">
+              <MediaFigure spacing="space20">
+                <DeleteIcon
+                  decorative={false}
+                  title="Delete conversation"
+                  color="colorTextError"
+                />
+              </MediaFigure>
+              <MediaBody>
+                <Text
+                  as="span"
+                  color="colorTextError"
+                  _hover={{ color: "colorTextError", cursor: "pointer" }}
+                >
+                  Delete conversation
+                </Text>
+              </MediaBody>
+            </MediaObject>
+          </MenuItem>
+        )}
+
         <MenuItem {...menu} onClick={props.leaveConvo}>
           <MediaObject verticalAlign="center">
             <MediaFigure spacing="space20">
               <ArrowBackIcon
                 decorative={false}
-                title="information"
+                title="Leave conversation"
                 color="colorTextError"
               />
             </MediaFigure>
             <MediaBody>
               <Text
-                as="a"
+                as="span"
                 color="colorTextError"
                 _hover={{ color: "colorTextError", cursor: "pointer" }}
               >
