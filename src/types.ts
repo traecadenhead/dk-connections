@@ -58,6 +58,12 @@ export type ReactionsType = {
   [Reactions.LAUGH]?: string[];
 };
 
+export interface Chapter {
+  chapter_id: string;
+  chapter_name: string;
+  status: string;
+}
+
 export interface ChapterAffiliation {
   chapter_id: string;
   chapter_name: string;

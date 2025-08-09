@@ -20,7 +20,7 @@ import ActionErrorModal from "../modals/ActionErrorModal";
 import { CONVERSATION_MESSAGES, ERROR_MODAL_MESSAGES } from "../../constants";
 import { successNotification, extractErrorBody } from "../../helpers";
 import { ReduxConversation } from "../../store/reducers/convoReducer";
-import { getSdkConversationObject } from "../../conversations-objects"; // still used for leave()
+import { getSdkConversationObject } from "../../conversations-objects";
 import { ReduxParticipant } from "../../store/reducers/participantsReducer";
 import { AppState } from "../../store";
 import { getTranslation } from "./../../utils/localUtils";
@@ -85,6 +85,52 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
     setError(errorText);
   }
 
+  // Bulk add handler for MemberSearch multi-select
+  const handleMultiAdd = async (memberIds: string[], makeAdmin: boolean) => {
+    if (!memberIds.length) return;
+
+    try {
+      const sid = props.convo.sid;
+
+      const results = await Promise.allSettled(
+        memberIds.map((mid) =>
+          makeAdmin
+            ? addConversationAdmin(sid, mid)
+            : addConversationParticipant(sid, mid)
+        )
+      );
+
+      const successes = results.filter((r) => r.status === "fulfilled").length;
+      const failures = results
+        .map((r, idx) => ({ r, idx }))
+        .filter((x) => x.r.status === "rejected");
+
+      if (successes > 0) {
+        successNotification({
+          message:
+            successes === 1
+              ? CONVERSATION_MESSAGES.PARTICIPANT_ADDED
+              : `${successes} participants added`,
+          addNotifications,
+        });
+      }
+
+      if (failures.length > 0) {
+        // surface first error (or aggregate)
+        const firstErr = failures[0].r as PromiseRejectedResult;
+        setErrorData(extractErrorBody(firstErr.reason));
+        setErrorToShow(ERROR_MODAL_MESSAGES.ADD_PARTICIPANT);
+      }
+
+      // Close the modal and reopen Manage Participants so changes are visible
+      handleChatClose();
+      props.setIsManageParticipantOpen(true);
+    } catch (e: unknown) {
+      setErrorData(extractErrorBody(e));
+      setErrorToShow(ERROR_MODAL_MESSAGES.ADD_PARTICIPANT);
+    }
+  };
+
   return (
     <>
       <SettingsMenu
@@ -105,13 +151,12 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
         addNotifications={addNotifications}
         isAdmin={props.isAdmin}
         onDeleteConversation={async () => {
-          // call your API delete endpoint here with props.convo.sid
-          await removeConversation(props.convo.sid); // <- your API fn
+          await removeConversation(props.convo.sid);
           successNotification({
             message: "Conversation deleted",
             addNotifications,
           });
-          updateCurrentConversation(""); // take user back to greeting
+          updateCurrentConversation("");
         }}
       />
       <ActionErrorModal
@@ -141,29 +186,22 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
             }
           }}
           onParticipantRemove={async (participant) => {
-            // Use API instead of Twilio SDK
             const memberId = participant.identity ?? "";
             if (!memberId) return;
 
             try {
               await removeConversationParticipant(props.convo.sid, memberId);
-
               successNotification({
                 message: CONVERSATION_MESSAGES.PARTICIPANT_REMOVED,
                 addNotifications,
               });
 
-              // If you removed yourself, clear current convo
               const myId = localStorage.getItem("member_id");
               if (memberId === myId) {
                 updateCurrentConversation("");
               }
-              // Otherwise, the Twilio SDK should emit participantRemoved and your
-              // listeners should update Redux participants. If not, you can trigger
-              // a manual refresh here.
             } catch (e: unknown) {
               setErrorData(extractErrorBody(e));
-              // If you don't have this constant, swap for a generic one you do have
               setErrorToShow(ERROR_MODAL_MESSAGES.REMOVE_PARTICIPANT);
             }
           }}
@@ -191,11 +229,11 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
             handleChatClose();
             props.setIsManageParticipantOpen(true);
           }}
+          // Single add (Connections tab)
           action={async (makeAdmin: boolean) => {
             try {
               const conversationSid = props.convo.sid;
               const memberIdToAdd = name.trim();
-
               if (!memberIdToAdd) return;
 
               if (makeAdmin) {
@@ -209,14 +247,14 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
 
               emptyData();
               handleChatClose();
-
-              // Reopen manage participants so the user sees the update
               props.setIsManageParticipantOpen(true);
             } catch (e: unknown) {
               setErrorData(extractErrorBody(e));
               setErrorToShow(ERROR_MODAL_MESSAGES.ADD_PARTICIPANT);
             }
           }}
+          // Multi add (Search tab)
+          onMultiAdd={handleMultiAdd}
           participantIds={props.participants.map((p) => p.identity || "")}
         />
       )}

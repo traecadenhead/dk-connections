@@ -18,7 +18,7 @@ export const getMemberProfileBatch = async (
   ids: string[]
 ): Promise<MemberProfileResponse[]> => {
   const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/member/profile/batch`,
+    `${process.env.REACT_APP_API_URL}/members/profile/batch`,
     {
       method: "POST",
       headers: {
@@ -41,7 +41,7 @@ export const getMemberProfile = async (
   memberId: string
 ): Promise<MemberProfileResponse> => {
   const response = await axios.get(
-    `${process.env.REACT_APP_API_URL}/member/profile/${memberId}`,
+    `${process.env.REACT_APP_API_URL}/members/profile/${memberId}`,
     {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("jwt")}`,
@@ -57,7 +57,7 @@ export async function updateMemberProfile(data: {
   interests: string;
 }): Promise<void> {
   const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/member/profile`,
+    `${process.env.REACT_APP_API_URL}/members/profile`,
     {
       method: "PUT",
       headers: {
@@ -73,3 +73,18 @@ export async function updateMemberProfile(data: {
     throw new Error(err.detail || "Failed to update profile");
   }
 }
+
+export const searchMembers = async (
+  name: string,
+  chapterId: string
+): Promise<MemberProfileResponse[]> => {
+  const response = await axios.get(
+    `${process.env.REACT_APP_API_URL}/members/search?name=${name}&chapter_id=${chapterId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+      },
+    }
+  );
+  return response.data;
+};

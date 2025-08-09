@@ -30,6 +30,7 @@ export const CONVERSATION_MESSAGES = {
   MESSAGE_EDITED: "Message edited.",
   MESSAGE_EDIT_FAILED: "Failed to edit message. Error: ",
   PARTICIPANT_REMOVED: "The participant was removed from the conversation.",
+  PARTICIPANT_ADDED: "The participant was added to the conversation.",
 };
 
 export const PARTICIPANT_MESSAGES = {

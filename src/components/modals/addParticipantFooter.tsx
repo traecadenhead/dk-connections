@@ -7,7 +7,7 @@ import { getTranslation } from "./../../utils/localUtils";
 import { useSelector } from "react-redux";
 
 interface AddParticipantFooterProps {
-  actionName: string;
+  text: string;
   onBack: () => void;
   action: () => void;
   isSaveDisabled?: boolean;
@@ -18,7 +18,6 @@ const AddParticipantFooter: React.FC<AddParticipantFooterProps> = (
 ) => {
   const local = useSelector((state: AppState) => state.local);
   const back = getTranslation(local, "back");
-  const actionNameTxt = getTranslation(local, props.actionName);
 
   return (
     <>
@@ -46,7 +45,7 @@ const AddParticipantFooter: React.FC<AddParticipantFooterProps> = (
               props.action();
             }}
           >
-            {actionNameTxt}
+            {props.text}
           </Button>
         </ModalFooterActions>
       </ModalFooter>
