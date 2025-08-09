@@ -1,5 +1,5 @@
 // src/components/conversation/ConversationContainer.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { bindActionCreators } from "redux";
 import { Box } from "@twilio-paste/core";
@@ -13,12 +13,12 @@ import MessageInputField from "../message/MessageInputField";
 import ActionErrorModal from "../modals/ActionErrorModal";
 import styles from "../../styles";
 import { getTranslation } from "../../utils/localUtils";
-import { getSdkConversationObject } from "../../conversations-objects";
 import { successNotification } from "../../helpers";
 import { CONVERSATION_MESSAGES, ERROR_MODAL_MESSAGES } from "../../constants";
 import { getConversationBySid } from "../../api/conversation";
 import { ReduxConversation } from "../../store/reducers/convoReducer";
 import { MemberConversation } from "../../types";
+import { updateConversationName } from "../../api/conversation";
 
 interface ConvoContainerProps {
   conversation?: ReduxConversation;
@@ -85,13 +85,6 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
   const { pushMessages, updateConversation, addNotifications } =
     bindActionCreators(actionCreators, dispatch);
 
-  const sdkConvo = useMemo(() => {
-    if (conversation) {
-      return getSdkConversationObject(conversation);
-    }
-    return undefined;
-  }, [conversation?.sid]);
-
   // Admins list + flag
   const adminIds = (fullConversation?.admins ?? []).map((a) => a.member_id);
   const isAdmin = adminIds.includes(memberId);
@@ -109,6 +102,20 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
         console.error("Failed to fetch conversation:", e);
       });
   }, [sid]);
+
+  const handleUpdateConvoName = async (val: string) => {
+    try {
+      await updateConversationName(sid, val);
+      updateConversation(sid, { ...conversation, friendlyName: val });
+      successNotification({
+        message: CONVERSATION_MESSAGES.NAME_CHANGED,
+        addNotifications,
+      });
+    } catch (e) {
+      setErrorData(e);
+      setErrorToShow(ERROR_MODAL_MESSAGES.CHANGE_CONVERSATION_NAME);
+    }
+  };
 
   const handleDroppedFiles = (files: File[]) => setDroppedFiles(files);
   const greeting = getTranslation(local, "greeting");
@@ -131,27 +138,7 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
             convoSid={sid}
             convo={conversation}
             participants={participants}
-            updateConvoName={
-              isAdmin
-                ? (val: string) => {
-                    sdkConvo
-                      ?.updateFriendlyName(val)
-                      .then((convo) => {
-                        updateConversation(convo.sid, convo);
-                        successNotification({
-                          message: CONVERSATION_MESSAGES.NAME_CHANGED,
-                          addNotifications,
-                        });
-                      })
-                      .catch((e: unknown) => {
-                        setErrorData(extractErrorBody(e));
-                        setErrorToShow(
-                          ERROR_MODAL_MESSAGES.CHANGE_CONVERSATION_NAME
-                        );
-                      });
-                  }
-                : undefined
-            }
+            updateConvoName={isAdmin ? handleUpdateConvoName : undefined}
             isAdmin={isAdmin}
             adminIds={adminIds}
           />

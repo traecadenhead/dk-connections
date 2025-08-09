@@ -9,6 +9,15 @@ function App() {
 
   return (
     <>
+      <style>{`
+        a {
+          color:rgb(49, 49, 49) !important;
+          text-decoration: none;
+        }
+        a:hover {
+          text-decoration: underline;
+        }
+      `}</style>
       {!token && <AutoLogin />}
       {token && <AppContainer />}
     </>
