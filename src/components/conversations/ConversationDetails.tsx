@@ -15,11 +15,11 @@ interface ConversationDetailsProps {
   updateConvoName?: (title: string) => void;
   isAdmin: boolean;
   adminIds: string[];
+  /** NEW: bubble admin list updates up to ConversationContainer */
+  onAdminsChange?: (ids: string[]) => void;
 }
 
-const ConversationDetails: React.FC<ConversationDetailsProps> = (
-  props: ConversationDetailsProps
-) => {
+const ConversationDetails: React.FC<ConversationDetailsProps> = (props) => {
   const theme = useTheme();
   const [isManageParticipantOpen, setIsManageParticipantOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -28,7 +28,10 @@ const ConversationDetails: React.FC<ConversationDetailsProps> = (
   );
   const inputRef = useRef<HTMLInputElement | null>(null);
 
+  const canEditTitle = Boolean(props.updateConvoName); // only if parent passed a handler (i.e., admin)
+
   const handleEditClick = () => {
+    if (!canEditTitle) return;
     setEditedText(props.convo.friendlyName ?? props.convo.sid);
     setIsEditing(true);
   };
@@ -38,6 +41,8 @@ const ConversationDetails: React.FC<ConversationDetailsProps> = (
   };
 
   useEffect(() => {
+    if (!canEditTitle) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         inputRef.current &&
@@ -66,7 +71,12 @@ const ConversationDetails: React.FC<ConversationDetailsProps> = (
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyPress);
     };
-  }, [editedText]);
+  }, [
+    canEditTitle,
+    editedText,
+    props.convo.friendlyName,
+    props.updateConvoName,
+  ]);
 
   return (
     <Box
@@ -93,6 +103,7 @@ const ConversationDetails: React.FC<ConversationDetailsProps> = (
             display: "flex",
             flexDirection: "row",
             alignItems: "center",
+            cursor: canEditTitle ? "text" : "default",
           }}
           color="colorText"
           fontFamily="fontFamilyText"
@@ -101,21 +112,24 @@ const ConversationDetails: React.FC<ConversationDetailsProps> = (
           fontWeight="fontWeightBold"
           maxHeight="100%"
           onClick={handleEditClick}
+          aria-label="Conversation title"
         >
-          {isEditing ? (
+          {isEditing && canEditTitle ? (
             <Input
               type="text"
               value={editedText}
               onChange={(e) => handleInputChange(e.target.value)}
               ref={inputRef}
+              autoFocus
             />
           ) : (
             <>{props.convo.friendlyName ?? props.convo.sid}</>
           )}
-          {props.updateConvoName && (
+          {canEditTitle && (
             <EditIcon decorative={false} title="Edit conversation name" />
           )}
         </Box>
+
         <Box
           style={{
             display: "flex",
@@ -134,6 +148,8 @@ const ConversationDetails: React.FC<ConversationDetailsProps> = (
             setIsManageParticipantOpen={setIsManageParticipantOpen}
             isAdmin={props.isAdmin}
             adminIds={props.adminIds}
+            /** NEW: forward the updater so Settings can optimistically adjust admins */
+            onAdminsChange={props.onAdminsChange}
           />
         </Box>
       </Box>

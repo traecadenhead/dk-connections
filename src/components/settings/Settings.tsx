@@ -20,7 +20,7 @@ import ActionErrorModal from "../modals/ActionErrorModal";
 import { CONVERSATION_MESSAGES, ERROR_MODAL_MESSAGES } from "../../constants";
 import { successNotification, extractErrorBody } from "../../helpers";
 import { ReduxConversation } from "../../store/reducers/convoReducer";
-import { getSdkConversationObject } from "../../conversations-objects";
+import { getSdkConversationObject } from "../../conversations-objects"; // still used for leave()
 import { ReduxParticipant } from "../../store/reducers/participantsReducer";
 import { AppState } from "../../store";
 import { getTranslation } from "./../../utils/localUtils";
@@ -33,6 +33,8 @@ interface SettingsProps {
   setIsManageParticipantOpen: (open: boolean) => void;
   isAdmin: boolean;
   adminIds: string[];
+  /** NEW: notify parent (ConversationDetails/Container) when admin list changes */
+  onAdminsChange?: (ids: string[]) => void;
 }
 
 const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
@@ -85,6 +87,21 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
     setError(errorText);
   }
 
+  // helper: push new admin ids (unique) and notify parent
+  const addAdminsOptimistic = (newIds: string[]) => {
+    if (!props.onAdminsChange || newIds.length === 0) return;
+    const next = Array.from(new Set([...props.adminIds, ...newIds]));
+    props.onAdminsChange(next);
+  };
+
+  // helper: remove admin id and notify parent
+  const removeAdminOptimistic = (memberId: string) => {
+    if (!props.onAdminsChange) return;
+    if (!props.adminIds.includes(memberId)) return;
+    const next = props.adminIds.filter((id) => id !== memberId);
+    props.onAdminsChange(next);
+  };
+
   // Bulk add handler for MemberSearch multi-select
   const handleMultiAdd = async (memberIds: string[], makeAdmin: boolean) => {
     if (!memberIds.length) return;
@@ -100,11 +117,12 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
         )
       );
 
-      const successes = results.filter((r) => r.status === "fulfilled").length;
-      const failures = results
-        .map((r, idx) => ({ r, idx }))
-        .filter((x) => x.r.status === "rejected");
+      const fulfilledIdxs: number[] = [];
+      results.forEach((r, idx) => {
+        if (r.status === "fulfilled") fulfilledIdxs.push(idx);
+      });
 
+      const successes = fulfilledIdxs.length;
       if (successes > 0) {
         successNotification({
           message:
@@ -115,10 +133,18 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
         });
       }
 
-      if (failures.length > 0) {
-        // surface first error (or aggregate)
-        const firstErr = failures[0].r as PromiseRejectedResult;
-        setErrorData(extractErrorBody(firstErr.reason));
+      // Optimistically update admins if we added admins successfully
+      if (makeAdmin && successes > 0) {
+        const addedIds = fulfilledIdxs.map((i) => memberIds[i]);
+        addAdminsOptimistic(addedIds);
+      }
+
+      // Surface first rejection (if any)
+      const firstRejected = results.find((r) => r.status === "rejected") as
+        | PromiseRejectedResult
+        | undefined;
+      if (firstRejected) {
+        setErrorData(extractErrorBody(firstRejected.reason));
         setErrorToShow(ERROR_MODAL_MESSAGES.ADD_PARTICIPANT);
       }
 
@@ -196,6 +222,9 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
                 addNotifications,
               });
 
+              // If they were an admin, optimistically drop them
+              removeAdminOptimistic(memberId);
+
               const myId = localStorage.getItem("member_id");
               if (memberId === myId) {
                 updateCurrentConversation("");
@@ -238,6 +267,8 @@ const Settings: React.FC<SettingsProps> = (props: SettingsProps) => {
 
               if (makeAdmin) {
                 await addConversationAdmin(conversationSid, memberIdToAdd);
+                // Optimistic admin promotion
+                addAdminsOptimistic([memberIdToAdd]);
               } else {
                 await addConversationParticipant(
                   conversationSid,

@@ -15,10 +15,12 @@ import styles from "../../styles";
 import { getTranslation } from "../../utils/localUtils";
 import { successNotification } from "../../helpers";
 import { CONVERSATION_MESSAGES, ERROR_MODAL_MESSAGES } from "../../constants";
-import { getConversationBySid } from "../../api/conversation";
+import {
+  getConversationBySid,
+  updateConversationName,
+} from "../../api/conversation";
 import { ReduxConversation } from "../../store/reducers/convoReducer";
 import { MemberConversation } from "../../types";
-import { updateConversationName } from "../../api/conversation";
 
 interface ConvoContainerProps {
   conversation?: ReduxConversation;
@@ -29,7 +31,6 @@ interface ConvoContainerProps {
 type ModalError = { code: number; message: string } | undefined;
 
 function extractErrorBody(err: unknown): ModalError {
-  // If API threw an object with a `body`
   if (err && typeof err === "object" && "body" in err) {
     const body = (err as { body?: { message?: unknown; code?: unknown } }).body;
     const message =
@@ -37,17 +38,12 @@ function extractErrorBody(err: unknown): ModalError {
     const code = typeof body?.code === "number" ? body.code : -1;
     return { code, message };
   }
-
-  // Plain Error instance
   if (err instanceof Error) {
     return { code: -1, message: err.message || "Unexpected error" };
   }
-
-  // String or anything else
   if (typeof err === "string") {
     return { code: -1, message: err };
   }
-
   return undefined;
 }
 
@@ -72,33 +68,41 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
 
   const [fullConversation, setFullConversation] =
     useState<MemberConversation | null>(null);
+
+  // NEW: keep adminIds as top-level state so children can optimistically update it
+  const [adminIds, setAdminIds] = useState<string[]>([]);
+
   const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
   const [showError, setErrorToShow] = useState<{
     title: string;
     description: string;
   } | null>(null);
 
-  // ✅ no `any`
   const [errorData, setErrorData] = useState<ModalError>(undefined);
 
   const dispatch = useDispatch();
   const { pushMessages, updateConversation, addNotifications } =
     bindActionCreators(actionCreators, dispatch);
 
-  // Admins list + flag
-  const adminIds = (fullConversation?.admins ?? []).map((a) => a.member_id);
+  // Boolean flag derived from adminIds
   const isAdmin = adminIds.includes(memberId);
   const isReadOnly = fullConversation?.is_read_only;
 
+  // Fetch conversation meta (including admins) on sid change
   useEffect(() => {
-    if (!sid) return;
+    if (!sid) {
+      setFullConversation(null);
+      setAdminIds([]);
+      return;
+    }
     getConversationBySid(sid)
-      .then(setFullConversation)
+      .then((fc) => {
+        setFullConversation(fc);
+        setAdminIds((fc.admins ?? []).map((a) => a.member_id));
+      })
       .catch((e: unknown) => {
-        // optional: surface via modal
         setErrorData(extractErrorBody(e));
         setErrorToShow(ERROR_MODAL_MESSAGES.CHANGE_CONVERSATION_NAME);
-        // still log for dev
         console.error("Failed to fetch conversation:", e);
       });
   }, [sid]);
@@ -106,13 +110,15 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
   const handleUpdateConvoName = async (val: string) => {
     try {
       await updateConversationName(sid, val);
-      updateConversation(sid, { ...conversation, friendlyName: val });
+      if (conversation) {
+        updateConversation(sid, { ...conversation, friendlyName: val });
+      }
       successNotification({
         message: CONVERSATION_MESSAGES.NAME_CHANGED,
         addNotifications,
       });
     } catch (e) {
-      setErrorData(e);
+      setErrorData(extractErrorBody(e));
       setErrorToShow(ERROR_MODAL_MESSAGES.CHANGE_CONVERSATION_NAME);
     }
   };
@@ -141,6 +147,8 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
             updateConvoName={isAdmin ? handleUpdateConvoName : undefined}
             isAdmin={isAdmin}
             adminIds={adminIds}
+            // NEW: let children notify us to update the admins list optimistically
+            onAdminsChange={setAdminIds}
           />
 
           <MessagesBox
