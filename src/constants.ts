@@ -50,3 +50,5 @@ export const NOTIFICATION_LEVEL = {
 };
 
 export const MAX_MESSAGE_LINE_WIDTH = 75;
+
+export const REACT_APP_API_URL = "https://api.deltakappamft.org";

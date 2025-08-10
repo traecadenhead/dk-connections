@@ -1,5 +1,6 @@
 // src/api/conversation.ts
 import { ConversationType, MemberConversation } from "../types";
+import { REACT_APP_API_URL } from "../constants";
 
 export async function createConversation(data: {
   type: ConversationType;
@@ -7,17 +8,14 @@ export async function createConversation(data: {
   chapter_id?: string;
   is_read_only: boolean;
 }): Promise<void> {
-  const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/conversations`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
-      },
-      body: JSON.stringify(data),
-    }
-  );
+  const response = await fetch(`${REACT_APP_API_URL}/conversations`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+    },
+    body: JSON.stringify(data),
+  });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -29,7 +27,7 @@ export async function removeConversation(
   conversationSid: string
 ): Promise<void> {
   const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/conversations/${conversationSid}`,
+    `${REACT_APP_API_URL}/conversations/${conversationSid}`,
     {
       method: "DELETE",
       headers: {
@@ -49,7 +47,7 @@ export async function getChapterConversations(
   chapterId: string
 ): Promise<MemberConversation[]> {
   const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/conversations/chapter/${chapterId}`,
+    `${REACT_APP_API_URL}/conversations/chapter/${chapterId}`,
     {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("jwt")}`,
@@ -68,14 +66,11 @@ export async function getChapterConversations(
 export async function getNationalConversations(): Promise<
   MemberConversation[]
 > {
-  const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/conversations/national`,
-    {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
-      },
-    }
-  );
+  const response = await fetch(`${REACT_APP_API_URL}/conversations/national`, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+    },
+  });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -89,7 +84,7 @@ export async function getConversationBySid(
   conversation_sid: string
 ): Promise<MemberConversation> {
   const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/conversations/${conversation_sid}`,
+    `${REACT_APP_API_URL}/conversations/${conversation_sid}`,
     {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("jwt")}`,
@@ -110,7 +105,7 @@ export async function addConversationParticipant(
   memberId: string
 ): Promise<void> {
   const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/conversations/${conversationSid}/participants/${memberId}`,
+    `${REACT_APP_API_URL}/conversations/${conversationSid}/participants/${memberId}`,
     {
       method: "POST",
       headers: {
@@ -131,7 +126,7 @@ export async function removeConversationParticipant(
   memberId: string
 ): Promise<void> {
   const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/conversations/${conversationSid}/participants/${memberId}`,
+    `${REACT_APP_API_URL}/conversations/${conversationSid}/participants/${memberId}`,
     {
       method: "DELETE",
       headers: {
@@ -154,7 +149,7 @@ export async function addConversationAdmin(
   memberId: string
 ): Promise<void> {
   const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/conversations/${conversationSid}/admins/${memberId}`,
+    `${REACT_APP_API_URL}/conversations/${conversationSid}/admins/${memberId}`,
     {
       method: "POST",
       headers: {
@@ -175,7 +170,7 @@ export async function updateConversationName(
   name: string
 ): Promise<void> {
   const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/conversations/${conversationSid}/name`,
+    `${REACT_APP_API_URL}/conversations/${conversationSid}/name`,
     {
       method: "PATCH",
       headers: {

@@ -1,33 +1,28 @@
 // src/api/member.ts
 import axios from "axios";
 import { MemberProfileResponse } from "../types";
+import { REACT_APP_API_URL } from "../constants";
 
 export async function getCurrentMember(jwt: string) {
-  const response = await axios.get(
-    `${process.env.REACT_APP_API_URL}/member/me`,
-    {
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-      },
-    }
-  );
+  const response = await axios.get(`${REACT_APP_API_URL}/member/me`, {
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+    },
+  });
   return response.data;
 }
 
 export const getMemberProfileBatch = async (
   ids: string[]
 ): Promise<MemberProfileResponse[]> => {
-  const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/members/profile/batch`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
-      },
-      body: JSON.stringify({ member_ids: ids }),
-    }
-  );
+  const response = await fetch(`${REACT_APP_API_URL}/members/profile/batch`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+    },
+    body: JSON.stringify({ member_ids: ids }),
+  });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -41,7 +36,7 @@ export const getMemberProfile = async (
   memberId: string
 ): Promise<MemberProfileResponse> => {
   const response = await axios.get(
-    `${process.env.REACT_APP_API_URL}/members/profile/${memberId}`,
+    `${REACT_APP_API_URL}/members/profile/${memberId}`,
     {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("jwt")}`,
@@ -56,17 +51,14 @@ export async function updateMemberProfile(data: {
   bio: string;
   interests: string;
 }): Promise<void> {
-  const response = await fetch(
-    `${process.env.REACT_APP_API_URL}/members/profile`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
-      },
-      body: JSON.stringify(data),
-    }
-  );
+  const response = await fetch(`${REACT_APP_API_URL}/members/profile`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+    },
+    body: JSON.stringify(data),
+  });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -79,7 +71,7 @@ export const searchMembers = async (
   chapterId: string
 ): Promise<MemberProfileResponse[]> => {
   const response = await axios.get(
-    `${process.env.REACT_APP_API_URL}/members/search?name=${name}&chapter_id=${chapterId}`,
+    `${REACT_APP_API_URL}/members/search?name=${name}&chapter_id=${chapterId}`,
     {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("jwt")}`,
