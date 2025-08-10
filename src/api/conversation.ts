@@ -7,7 +7,7 @@ export async function createConversation(data: {
   name: string;
   chapter_id?: string;
   is_read_only: boolean;
-}): Promise<void> {
+}): Promise<MemberConversation> {
   const response = await fetch(`${REACT_APP_API_URL}/conversations`, {
     method: "POST",
     headers: {
@@ -21,6 +21,8 @@ export async function createConversation(data: {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to create conversation");
   }
+
+  return response.json();
 }
 
 export async function removeConversation(

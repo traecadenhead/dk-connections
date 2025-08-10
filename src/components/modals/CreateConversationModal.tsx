@@ -1,3 +1,4 @@
+// src/components/modals/CreateConversationModal.tsx
 import React, { useState, useEffect } from "react";
 import {
   Modal,
@@ -12,7 +13,11 @@ import {
   Checkbox,
   Box,
 } from "@twilio-paste/core";
-import { ConversationType, ChapterAffiliation } from "../../types";
+import {
+  ConversationType,
+  ChapterAffiliation,
+  MemberConversation,
+} from "../../types";
 import { createConversation } from "../../api/conversation";
 
 interface CreateConversationModalProps {
@@ -20,12 +25,7 @@ interface CreateConversationModalProps {
   onClose: () => void;
   adminChapters: ChapterAffiliation[];
   adminNational: boolean;
-  onCreate?: (data: {
-    type: ConversationType;
-    name: string;
-    is_read_only: boolean;
-    chapter_id?: string;
-  }) => void;
+  onCreate?: (created: MemberConversation) => void;
 }
 
 const CreateConversationModal: React.FC<CreateConversationModalProps> = ({
@@ -41,7 +41,9 @@ const CreateConversationModal: React.FC<CreateConversationModalProps> = ({
   const [chapterId, setChapterId] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
-  const showChapterSelect = type === "chapter";
+  const isPersonal = type === ConversationType.PERSONAL;
+  const isChapter = type === ConversationType.CHAPTER;
+  const showChapterSelect = isChapter;
   const showTypeSelect = adminChapters.length > 0 || adminNational;
 
   const resetForm = () => {
@@ -53,45 +55,86 @@ const CreateConversationModal: React.FC<CreateConversationModalProps> = ({
   };
 
   useEffect(() => {
-    if (type === "personal") {
+    if (isPersonal) {
       setIsReadOnly(false);
     }
-  }, [type]);
+  }, [isPersonal]);
 
   useEffect(() => {
-    if (type === "chapter") {
+    if (isChapter) {
       if (adminChapters.length === 1) {
         setChapterId(adminChapters[0].chapter_id);
       }
     } else {
       setChapterId(undefined);
     }
-  }, [type, adminChapters]);
+  }, [isChapter, adminChapters]);
 
   const handleSubmit = async () => {
     setError(null);
+
+    // simple guard against empty names to avoid duplicate "Untitled"/matching issues
+    if (!name.trim()) {
+      setError("Please enter a conversation name.");
+      return;
+    }
+
     const conversationData = {
       type,
-      name,
+      name: name.trim(),
       is_read_only: isReadOnly,
       chapter_id: chapterId || undefined,
     };
 
     try {
-      await createConversation(conversationData);
-      if (onCreate) {
-        onCreate(conversationData);
-      }
+      // IMPORTANT: use the API response (with real sid/id)
+      const created = (await createConversation(
+        conversationData
+      )) as MemberConversation;
+
+      onCreate?.(created);
       resetForm();
       onClose();
-    } catch (err) {
-      setError(err.message || "Failed to create conversation");
+    } catch (err: unknown) {
+      const fallback = "Failed to create conversation";
+      const detail = getResponseDetail(err);
+      const message = detail
+        ? detail
+        : err instanceof Error
+        ? err.message
+        : hasStringMessage(err)
+        ? err.message
+        : fallback;
+
+      setError(message);
     }
   };
 
   const handleDismiss = () => {
     resetForm();
     onClose();
+  };
+
+  // Narrow unknown to a string-message error
+  const hasStringMessage = (e: unknown): e is { message: string } =>
+    typeof e === "object" &&
+    e !== null &&
+    "message" in e &&
+    typeof (e as Record<string, unknown>).message === "string";
+
+  // Optional: handle axios/fetch-style nested detail without `any`
+  const getResponseDetail = (e: unknown): string | undefined => {
+    if (typeof e !== "object" || e === null) return undefined;
+
+    const maybeObj = e as Record<string, unknown>;
+    const resp = maybeObj["response"];
+    if (typeof resp !== "object" || resp === null) return undefined;
+
+    const data = (resp as Record<string, unknown>)["data"];
+    if (typeof data !== "object" || data === null) return undefined;
+
+    const detail = (data as Record<string, unknown>)["detail"];
+    return typeof detail === "string" ? detail : undefined;
   };
 
   return (
@@ -117,11 +160,13 @@ const CreateConversationModal: React.FC<CreateConversationModalProps> = ({
               value={type}
               onChange={(e) => setType(e.target.value as ConversationType)}
             >
-              <option value="personal">Personal</option>
+              <option value={ConversationType.PERSONAL}>Personal</option>
               {adminChapters.length > 0 && (
-                <option value="chapter">Chapter</option>
+                <option value={ConversationType.CHAPTER}>Chapter</option>
               )}
-              {adminNational && <option value="national">National</option>}
+              {adminNational && (
+                <option value={ConversationType.NATIONAL}>National</option>
+              )}
             </Select>
           </Box>
         )}
@@ -160,7 +205,7 @@ const CreateConversationModal: React.FC<CreateConversationModalProps> = ({
           />
         </Box>
 
-        {type !== "personal" && (
+        {!isPersonal && (
           <Box marginBottom="space60">
             <Checkbox
               id="read-only"

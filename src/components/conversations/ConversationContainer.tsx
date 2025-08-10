@@ -111,7 +111,7 @@ const ConversationContainer: React.FC<ConvoContainerProps> = ({
     try {
       await updateConversationName(sid, val);
       if (conversation) {
-        updateConversation(sid, { ...conversation, friendlyName: val });
+        updateConversation(sid, { friendlyName: val });
       }
       successNotification({
         message: CONVERSATION_MESSAGES.NAME_CHANGED,
