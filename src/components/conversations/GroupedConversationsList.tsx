@@ -19,12 +19,13 @@ import {
 import { AppState, actionCreators } from "../../store";
 
 interface GroupedConversationsListProps {
-  adminChapters: ChapterAffiliation[];
+  /** Chapters from the member profile (NOT just admin chapters) */
+  memberChapters: ChapterAffiliation[];
   client: Client;
 }
 
 const GroupedConversationsList: React.FC<GroupedConversationsListProps> = ({
-  adminChapters,
+  memberChapters,
   client,
 }) => {
   const sid = useSelector((state: AppState) => state.sid);
@@ -59,16 +60,38 @@ const GroupedConversationsList: React.FC<GroupedConversationsListProps> = ({
     personal: true,
   });
 
+  // Ensure each chapter section starts open
+  useEffect(() => {
+    setVisibility((prev) => {
+      const next = { ...prev };
+      memberChapters.forEach((c) => {
+        if (next[c.chapter_id] === undefined) next[c.chapter_id] = true;
+      });
+      return next;
+    });
+  }, [memberChapters]);
+
+  // Helper to page through all subscribed conversations
+  const getAllSubscribed = async (): Promise<Conversation[]> => {
+    const all: Conversation[] = [];
+    let page = await client.getSubscribedConversations();
+    all.push(...page.items);
+    while (page.hasNextPage) {
+      page = await page.nextPage();
+      all.push(...page.items);
+    }
+    return all;
+  };
+
   const loadConversations = async () => {
     try {
+      // 1) Fetch national + per-chapter convos for ALL member chapters
       const [nationalConvos, chapterConvosMap] = await Promise.all([
         getNationalConversations(),
         Promise.all(
-          adminChapters.map(async (chapter) => {
-            const chapterConvos = await getChapterConversations(
-              chapter.chapter_id
-            );
-            return { chapterId: chapter.chapter_id, convos: chapterConvos };
+          memberChapters.map(async (chapter) => {
+            const convos = await getChapterConversations(chapter.chapter_id);
+            return { chapterId: chapter.chapter_id, convos };
           })
         ),
       ]);
@@ -91,10 +114,11 @@ const GroupedConversationsList: React.FC<GroupedConversationsListProps> = ({
           }))
       );
 
-      const subscribedPaginator = await client.getSubscribedConversations();
-      const subscribedItems = subscribedPaginator.items;
+      // 2) All subscribed convos (paginate!)
+      const subscribedItems = await getAllSubscribed();
       const subscribedSids = new Set(subscribedItems.map((c) => c.sid));
 
+      // 3) Anything subscribed that's not national/chapter (known) is "Personal"
       const knownSids = new Set([
         ...nationalMinimal.map((c) => c.sid),
         ...chapterMinimal.map((c) => c.sid),
@@ -114,6 +138,7 @@ const GroupedConversationsList: React.FC<GroupedConversationsListProps> = ({
         ...personalMinimal,
       ];
 
+      // 4) Build concrete objects for subscribed + "join" list for unjoined
       const convoObjects: Conversation[] = [];
       const unjoined: Record<string, MinimalConversation> = {};
 
@@ -150,9 +175,6 @@ const GroupedConversationsList: React.FC<GroupedConversationsListProps> = ({
   };
 
   useEffect(() => {
-    // already defined somewhere above:
-    // const loadConversations = async () => { ... }
-
     loadConversations();
 
     const onAdded = () => loadConversations();
@@ -165,7 +187,7 @@ const GroupedConversationsList: React.FC<GroupedConversationsListProps> = ({
       client.off("conversationAdded", onAdded);
       client.off("conversationRemoved", onRemoved);
     };
-  }, [client, adminChapters]);
+  }, [client, memberChapters]); // <— important
 
   const handleJoinConversation = async (sid: string) => {
     try {
@@ -342,7 +364,7 @@ const GroupedConversationsList: React.FC<GroupedConversationsListProps> = ({
         )}
       </Box>
 
-      {adminChapters.map((chapter) => (
+      {memberChapters.map((chapter) => (
         <Box key={chapter.chapter_id} marginBottom="space60">
           <Box
             display="flex"

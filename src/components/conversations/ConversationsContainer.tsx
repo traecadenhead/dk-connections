@@ -23,6 +23,9 @@ const ConversationsContainer: React.FC<ConversationsContainerProps> = ({
 }) => {
   const [listHidden, hideList] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [memberChapters, setMemberChapters] = useState<ChapterAffiliation[]>(
+    []
+  );
   const [adminChapters, setAdminChapters] = useState<ChapterAffiliation[]>([]);
   const [adminNational, setAdminNational] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -41,6 +44,7 @@ const ConversationsContainer: React.FC<ConversationsContainerProps> = ({
       try {
         const memberId = localStorage.getItem("member_id");
         const profile = await getMemberProfile(memberId ?? "");
+        setMemberChapters(profile.chapters || []);
         setAdminChapters(profile.admin_chapters || []);
         setAdminNational(profile.admin_national || false);
       } catch (error) {
@@ -100,7 +104,7 @@ const ConversationsContainer: React.FC<ConversationsContainerProps> = ({
       <Box style={styles.convoList}>
         {!listHidden && client ? (
           <GroupedConversationsList
-            adminChapters={adminChapters}
+            memberChapters={memberChapters}
             client={client}
           />
         ) : null}
